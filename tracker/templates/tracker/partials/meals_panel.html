@@ -1,0 +1,144 @@
+<section id="meals-panel" class="mb-8">
+    <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="bg-white rounded-lg border border-slate-200 p-4">
+            <div class="text-xs uppercase tracking-wide text-slate-500">Calories today</div>
+            <div class="mt-1 text-2xl font-semibold">
+                {{ meal_totals.kcal|floatformat:0 }}
+                <span class="text-base font-normal text-slate-400">/ {{ kcal_target }}</span>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg border border-slate-200 p-4 ring-1 ring-emerald-100">
+            <div class="text-xs uppercase tracking-wide text-emerald-700">Protein today</div>
+            <div class="mt-1 text-2xl font-semibold">
+                {{ meal_totals.protein_g|floatformat:0 }} g
+                <span class="text-base font-normal text-slate-400">/ {{ protein_target_g }} g</span>
+            </div>
+            <div class="text-xs text-emerald-700 mt-1">Non-negotiable target</div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg border border-slate-200 p-4">
+        <div class="flex items-center justify-between gap-3 mb-4">
+            <h2 class="text-lg font-semibold">Log a meal</h2>
+            <div class="text-xs text-slate-500">
+                Fat {{ meal_totals.fat_g|floatformat:1 }} g · Carbs {{ meal_totals.carb_g|floatformat:1 }} g
+            </div>
+        </div>
+
+        {# ---- Log a saved recipe (multi-ingredient one-tap) ---- #}
+        <form
+            method="post"
+            action="{% url 'tracker:htmx-log-template' %}"
+            hx-post="{% url 'tracker:htmx-log-template' %}"
+            hx-target="#meals-panel"
+            hx-swap="outerHTML"
+            class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end mb-4"
+        >
+            {% csrf_token %}
+            <div>
+                <label for="id_meal_template" class="block text-sm font-medium text-slate-700 mb-1">Pick a recipe</label>
+                <select name="meal_template" id="id_meal_template"
+                        class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
+                    <option value="">Choose a recipe…</option>
+                    {% for group in grouped_templates %}
+                        <optgroup label="{{ group.label }}">
+                            {% for tpl in group.templates %}
+                                <option value="{{ tpl.id }}">{{ tpl.name }}</option>
+                            {% endfor %}
+                        </optgroup>
+                    {% endfor %}
+                </select>
+                {% if template_form.meal_template.errors %}
+                    <p class="text-xs text-red-600 mt-1">{{ template_form.meal_template.errors|striptags }}</p>
+                {% endif %}
+            </div>
+            <button type="submit" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
+                Log recipe
+            </button>
+        </form>
+
+        <div class="relative flex items-center mb-4">
+            <div class="flex-grow border-t border-slate-200"></div>
+            <span class="mx-3 text-xs uppercase tracking-wide text-slate-400">or one food</span>
+            <div class="flex-grow border-t border-slate-200"></div>
+        </div>
+
+        {# ---- Log a single food (grams optional → uses food.default_grams) ---- #}
+        <form
+            method="post"
+            action="{% url 'tracker:htmx-log-meal' %}"
+            hx-post="{% url 'tracker:htmx-log-meal' %}"
+            hx-target="#meals-panel"
+            hx-swap="outerHTML"
+            class="grid gap-3 sm:grid-cols-[1fr_8rem_auto] sm:items-end"
+        >
+            {% csrf_token %}
+            <div>
+                <label for="{{ meal_form.food.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Food</label>
+                {# Plain select so we can attach onchange to fetch the default grams. #}
+                <select name="{{ meal_form.food.name }}"
+                        id="{{ meal_form.food.id_for_label }}"
+                        data-grams-input="{{ meal_form.grams.id_for_label }}"
+                        data-default-url="{% url 'tracker:htmx-food-default' 0 %}"
+                        onchange='(async (sel) => {
+                          const v = sel.value;
+                          const input = document.getElementById(sel.dataset.gramsInput);
+                          if (!v) return;
+                          const url = sel.dataset.defaultUrl.replace("/0/", "/" + v + "/");
+                          try {
+                            const r = await fetch(url, {headers: {"Accept": "application/json"}});
+                            if (!r.ok) return;
+                            const j = await r.json();
+                            if (j.default_grams && !input.value) input.value = j.default_grams;
+                          } catch (e) { /* swallow — server fallback still works */ }
+                        })(this)'
+                        class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
+                    <option value="">Choose a food</option>
+                    {% for food in meal_form.fields.food.queryset %}
+                        <option value="{{ food.id }}"
+                                {% if meal_form.food.value|stringformat:'s' == food.id|stringformat:'s' %}selected{% endif %}>
+                            {{ food.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if meal_form.food.errors %}
+                    <p class="text-xs text-red-600 mt-1">{{ meal_form.food.errors|striptags }}</p>
+                {% endif %}
+            </div>
+            <div>
+                <label for="{{ meal_form.grams.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Grams</label>
+                {{ meal_form.grams }}
+                {% if meal_form.grams.errors %}
+                    <p class="text-xs text-red-600 mt-1">{{ meal_form.grams.errors|striptags }}</p>
+                {% endif %}
+            </div>
+            <button type="submit" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
+                Add
+            </button>
+        </form>
+
+        <div class="mt-5 border-t border-slate-100 pt-4">
+            <h3 class="text-sm font-semibold text-slate-700 mb-2">Today's meals</h3>
+            {% if meals %}
+                <ul class="divide-y divide-slate-100">
+                    {% for meal in meals %}
+                    <li class="py-3 flex items-start justify-between gap-4">
+                        <div>
+                            <div class="font-medium text-slate-900">{{ meal.food.name }}</div>
+                            <div class="text-xs text-slate-500">
+                                {{ meal.grams|floatformat:0 }} g · {{ meal.eaten_at|time:"H:i" }}
+                            </div>
+                        </div>
+                        <div class="text-right text-sm tabular-nums">
+                            <div class="font-medium text-slate-900">{{ meal.kcal|floatformat:0 }} kcal</div>
+                            <div class="text-xs text-slate-500">{{ meal.protein_g|floatformat:1 }} g protein</div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-sm text-slate-500">No meals logged yet today.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>

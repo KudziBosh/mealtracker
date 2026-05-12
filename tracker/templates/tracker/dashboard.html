@@ -12,43 +12,44 @@
     </p>
 </section>
 
-{# Today's totals — MealEntry lands in slice 2, so for now these are placeholders. #}
-<section class="grid grid-cols-2 gap-4 mb-8">
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-        <div class="text-xs uppercase tracking-wide text-slate-500">Calories today</div>
-        <div class="mt-1 text-2xl font-semibold">— <span class="text-base font-normal text-slate-400">/ {{ kcal_target }}</span></div>
-        <div class="text-xs text-slate-400 mt-1">Meal logging in slice 2</div>
-    </div>
-    <div class="bg-white rounded-lg border border-slate-200 p-4 ring-1 ring-emerald-100">
-        <div class="text-xs uppercase tracking-wide text-emerald-700">Protein today (non-negotiable)</div>
-        <div class="mt-1 text-2xl font-semibold">— <span class="text-base font-normal text-slate-400">/ {{ protein_target_g }} g</span></div>
-        <div class="text-xs text-slate-400 mt-1">Meal logging in slice 2</div>
-    </div>
-</section>
+{% include "tracker/partials/meals_panel.html" %}
 
-{# Today's habits — read-only display in slice 1, HTMX toggles in slice 2. #}
+{% include "tracker/partials/habits_panel.html" %}
+
 <section class="mb-8">
-    <h2 class="text-lg font-semibold mb-3">Today's habits</h2>
-    <ul class="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100">
-        {% for row in habit_rows %}
-        <li class="px-4 py-3 flex items-center gap-3">
-            <span class="inline-flex h-5 w-5 items-center justify-center rounded border {% if row.done %}bg-emerald-500 border-emerald-500 text-white{% else %}border-slate-300{% endif %}">
-                {% if row.done %}✓{% endif %}
-            </span>
-            <span class="{% if row.done %}text-slate-900{% else %}text-slate-600{% endif %}">{{ row.label }}</span>
-        </li>
-        {% endfor %}
-    </ul>
-    {% if todays_log %}
-    <p class="text-xs text-slate-500 mt-2">
-        Walked {{ todays_log.walked_minutes }} min{% if todays_log.steps %} · {{ todays_log.steps }} steps{% endif %}
-        · {{ todays_log.habits_completed }}/{{ todays_log.habits_total }} habits done
-    </p>
-    {% else %}
-    <p class="text-xs text-slate-500 mt-2">
-        No log for today yet. Create one via <a class="underline" href="/admin/tracker/dailylog/add/">admin</a> for now.
-    </p>
-    {% endif %}
+    <div class="bg-slate-900 rounded-lg p-5 text-white">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <div class="text-xs uppercase tracking-wide text-emerald-300">End-of-day summary</div>
+                <h2 class="mt-1 text-xl font-semibold">{{ end_of_day_summary.headline }}</h2>
+                <p class="mt-1 text-sm text-slate-300">{{ end_of_day_summary.nudge }}</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="rounded-full bg-white/10 px-3 py-1 text-sm font-semibold">
+                    {{ end_of_day_summary.hit_count }}/{{ end_of_day_summary.total_count }} checks
+                </div>
+                <a href="{% url 'tracker:summary' %}"
+                   class="rounded-md bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1.5 text-xs font-semibold whitespace-nowrap">
+                    Full summary →
+                </a>
+            </div>
+        </div>
+
+        <div class="mt-5 grid gap-3 md:grid-cols-5">
+            {% for check in end_of_day_summary.checks %}
+            <div class="rounded-md bg-white/10 p-3">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="text-xs uppercase tracking-wide text-slate-300">{{ check.label }}</div>
+                    <div class="text-xs font-semibold {% if check.status == 'hit' %}text-emerald-300{% elif check.status == 'miss' %}text-red-300{% else %}text-amber-300{% endif %}">
+                        {% if check.status == "hit" %}OK{% elif check.status == "miss" %}Gap{% else %}Check{% endif %}
+                    </div>
+                </div>
+                <div class="mt-2 text-lg font-semibold">{{ check.value }}</div>
+                <div class="mt-1 text-xs text-slate-300">{{ check.message }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
 </section>
 
 {# Latest weight + week trend #}

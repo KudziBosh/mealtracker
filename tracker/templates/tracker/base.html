@@ -16,6 +16,8 @@
                 Mealtracker
             </a>
             <nav class="text-sm text-slate-600 flex gap-4">
+                <a href="{% url 'tracker:dashboard' %}" class="hover:text-slate-900">Dashboard</a>
+                <a href="{% url 'tracker:summary' %}" class="hover:text-slate-900">Summary</a>
                 <a href="/admin/" class="hover:text-slate-900">Admin</a>
                 {% if user.is_authenticated %}
                     <span class="text-slate-400">{{ user.username }}</span>

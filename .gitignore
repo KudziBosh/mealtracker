@@ -34,6 +34,10 @@ htmlcov/
 .tox/
 .cache/
 
+# Celery beat runtime artefact (lands in repo root when beat runs locally)
+celerybeat-schedule
+celerybeat-schedule.*
+
 # Editors
 .idea/
 .vscode/

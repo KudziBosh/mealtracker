@@ -15,6 +15,8 @@ env = environ.Env(
     DJANGO_DEBUG=(bool, False),
     DJANGO_ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
     DJANGO_TIME_ZONE=(str, "Africa/Harare"),
+    TELEGRAM_BOT_TOKEN=(str, ""),
+    REDIS_URL=(str, "redis://redis:6379/0"),
 )
 
 # Read .env from project root if present. In docker compose, vars come from the
@@ -162,3 +164,34 @@ LOGGING = {
         },
     },
 }
+
+
+# ---- Celery ----------------------------------------------------------------
+
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BROKER_URL = env("REDIS_URL")
+CELERY_RESULT_BACKEND = env("REDIS_URL")
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_BEAT_SCHEDULE = {
+    "morning-ping": {
+        "task": "tracker.tasks.send_morning_ping",
+        "schedule": crontab(hour=7, minute=0),
+    },
+    "evening-habit-check": {
+        "task": "tracker.tasks.send_evening_habit_check",
+        "schedule": crontab(hour=21, minute=0),
+    },
+    "weekly-summary": {
+        "task": "tracker.tasks.send_weekly_summary",
+        "schedule": crontab(hour=19, minute=0, day_of_week="sun"),
+    },
+}
+
+
+# ---- Telegram --------------------------------------------------------------
+
+TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN")

@@ -4,6 +4,7 @@
 # Migrate:    docker compose run --rm web python manage.py migrate
 # Superuser:  docker compose run --rm web python manage.py createsuperuser
 # Tests:      docker compose run --rm web pytest
+# Bot token:  set TELEGRAM_BOT_TOKEN in .env, then /start the bot to bind chat ID
 
 services:
   db:
@@ -24,7 +25,11 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    # Reserved for Celery in a later slice; nothing connects to it yet.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   web:
     build:
@@ -53,6 +58,67 @@ services:
       sh -c "python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
              python manage.py runserver 0.0.0.0:8000"
+
+  celery_worker:
+    build:
+      context: .
+      args:
+        INSTALL_DEV: "1"
+        APP_UID: "${UID:-1000}"
+        APP_GID: "${GID:-1000}"
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: celery -A mealtracker worker --loglevel=info
+
+  celery_beat:
+    build:
+      context: .
+      args:
+        INSTALL_DEV: "1"
+        APP_UID: "${UID:-1000}"
+        APP_GID: "${GID:-1000}"
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: celery -A mealtracker beat --loglevel=info
+
+  telegram_bot:
+    build:
+      context: .
+      args:
+        INSTALL_DEV: "1"
+        APP_UID: "${UID:-1000}"
+        APP_GID: "${GID:-1000}"
+    restart: on-failure
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: python manage.py run_bot
 
 volumes:
   pgdata:

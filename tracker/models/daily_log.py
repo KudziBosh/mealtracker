@@ -1,17 +1,9 @@
-"""
-Tracker models for slice 1: DailyLog and WeightEntry.
-
-Single-user app — `user` is a FK to the standard Django User model. Views
-always pass `request.user`; do not default the FK at the model layer (would
-require runtime lookup and obscures intent).
-
-FoodItem, MealEntry and TelegramSettings land in later slices.
-"""
+"""Daily log model."""
 
 from django.conf import settings
 from django.db import models
 
-from . import protocol
+from tracker import protocol
 
 
 class DailyLog(models.Model):
@@ -52,38 +44,9 @@ class DailyLog(models.Model):
     @property
     def habits_completed(self) -> int:
         """Count of the five habit booleans that are True."""
-        return sum(
-            1
-            for field, _label in protocol.HABIT_LABELS
-            if getattr(self, field)
-        )
+        return sum(1 for field, _label in protocol.HABIT_LABELS if getattr(self, field))
 
     @property
     def habits_total(self) -> int:
         """Total habits tracked (always 5; exposed for template arithmetic)."""
         return len(protocol.HABIT_LABELS)
-
-
-class WeightEntry(models.Model):
-    """A single weigh-in. Owner weighs weekly on Tuesday by default."""
-
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="weight_entries",
-    )
-    date = models.DateField()
-    weight_kg = models.DecimalField(max_digits=5, decimal_places=2)
-    notes = models.TextField(blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["user", "date"], name="unique_weight_per_day"),
-        ]
-        ordering = ["-date"]
-
-    def __str__(self) -> str:
-        return f"WeightEntry({self.user_id}, {self.date.isoformat()}, {self.weight_kg} kg)"

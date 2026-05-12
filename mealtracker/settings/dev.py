@@ -5,7 +5,7 @@ from django-extensions for richer error pages when needed.
 """
 
 from .base import *  # noqa: F401,F403
-from .base import INSTALLED_APPS, MIDDLEWARE
+from .base import INSTALLED_APPS
 
 INSTALLED_APPS = [*INSTALLED_APPS, "django_extensions"]
 

@@ -6,12 +6,17 @@ keeping them hardcoded is intentional (see CLAUDE.md). If a number changes, edit
 this file and add a test that asserts the new value.
 """
 
-from datetime import time
+from datetime import date, time, timedelta
 
 # ---- Weight ---------------------------------------------------------------
 
 START_WEIGHT_KG = 120
 GOAL_WEIGHT_KG = 90
+
+# Plan duration window from CLAUDE.md: 9–14 months for the 30 kg drop. Used to
+# bound the "are you on pace?" check on the end-of-day summary.
+PLAN_DURATION_WEEKS_MIN = 9 * 4  # 36 weeks ≈ 9 months
+PLAN_DURATION_WEEKS_MAX = 14 * 4  # 56 weeks ≈ 14 months
 
 
 # ---- Daily macro targets --------------------------------------------------
@@ -32,9 +37,12 @@ PROTEIN_IS_NON_NEGOTIABLE = True
 # 8-week buildup from the plan: 30 → 75 min. Returns target minutes/day given a
 # 1-indexed protocol week.
 WALKING_BUILDUP_MIN = {
-    1: 30, 2: 30,
-    3: 45, 4: 45,
-    5: 60, 6: 60,
+    1: 30,
+    2: 30,
+    3: 45,
+    4: 45,
+    5: 60,
+    6: 60,
     7: 75,  # week 7+ steady state
 }
 WALKING_STEADY_STATE_MIN = 75
@@ -46,6 +54,26 @@ def target_walking_minutes(protocol_week: int) -> int:
     if protocol_week < 1:
         return WALKING_BUILDUP_MIN[1]
     return WALKING_BUILDUP_MIN.get(protocol_week, WALKING_STEADY_STATE_MIN)
+
+
+# ---- Protocol week / plan timeline ----------------------------------------
+
+
+def protocol_week(first_weight_date: date | None, on_date: date) -> int:
+    """Return the 1-indexed protocol week for ``on_date``.
+
+    Per CLAUDE.md ("Week 1" is the first Monday on or after the first
+    ``WeightEntry``). Returns 1 if there's no first weight yet, or if
+    ``on_date`` falls before that Monday — keeps callers from having to
+    special-case the cold-start case.
+    """
+    if first_weight_date is None:
+        return 1
+    first_monday = first_weight_date - timedelta(days=first_weight_date.weekday())
+    days = (on_date - first_monday).days
+    if days < 0:
+        return 1
+    return days // 7 + 1
 
 
 # ---- Weigh-in ------------------------------------------------------------
