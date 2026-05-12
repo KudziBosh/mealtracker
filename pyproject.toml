@@ -1,0 +1,29 @@
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+extend-exclude = '''
+/(
+    migrations
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["migrations"]
+
+[tool.ruff.lint]
+# Sensible Django defaults: pycodestyle, pyflakes, isort, bugbear, comprehensions, naming.
+select = ["E", "F", "I", "B", "C4", "N", "UP"]
+ignore = [
+    "E501",  # line length handled by formatter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/settings/*.py" = ["F405", "F403"]  # allow `from .base import *`
+"**/tests/*.py" = ["N802"]              # test names often violate snake_case (testCamelCase patterns)
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "mealtracker.settings.dev"
+python_files = ["test_*.py", "*_test.py"]
+addopts = "-ra --strict-markers"

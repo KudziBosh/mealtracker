@@ -1,0 +1,58 @@
+# Local development stack. Production compose lives separately (Phase 2).
+#
+# Bring up:   docker compose up -d
+# Migrate:    docker compose run --rm web python manage.py migrate
+# Superuser:  docker compose run --rm web python manage.py createsuperuser
+# Tests:      docker compose run --rm web pytest
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mealtracker}
+      POSTGRES_USER: ${POSTGRES_USER:-mealtracker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-mealtracker}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Reserved for Celery in a later slice; nothing connects to it yet.
+
+  web:
+    build:
+      context: .
+      args:
+        INSTALL_DEV: "1"
+        # Match the host user so bind-mounted files Django creates
+        # (migrations, __pycache__) stay owned by the developer.
+        APP_UID: "${UID:-1000}"
+        APP_GID: "${GID:-1000}"
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # Host port is configurable so this stack can coexist with other Django
+      # apps on the same server (Portainer holds 8000 here).
+      - "${WEB_HOST_PORT:-8001}:8000"
+    volumes:
+      - .:/app
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+
+volumes:
+  pgdata:

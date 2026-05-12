@@ -1,0 +1,87 @@
+{% extends "tracker/base.html" %}
+
+{% block title %}Today · Mealtracker{% endblock %}
+
+{% block content %}
+<section class="mb-8">
+    <h1 class="text-2xl font-semibold tracking-tight">
+        {{ today|date:"l, j F Y" }}
+    </h1>
+    <p class="text-sm text-slate-500 mt-1">
+        Targets: {{ kcal_target }} kcal · <span class="font-medium text-slate-700">{{ protein_target_g }} g protein</span> · {{ fat_target_g }} g fat · {{ carb_target_g }} g carbs
+    </p>
+</section>
+
+{# Today's totals — MealEntry lands in slice 2, so for now these are placeholders. #}
+<section class="grid grid-cols-2 gap-4 mb-8">
+    <div class="bg-white rounded-lg border border-slate-200 p-4">
+        <div class="text-xs uppercase tracking-wide text-slate-500">Calories today</div>
+        <div class="mt-1 text-2xl font-semibold">— <span class="text-base font-normal text-slate-400">/ {{ kcal_target }}</span></div>
+        <div class="text-xs text-slate-400 mt-1">Meal logging in slice 2</div>
+    </div>
+    <div class="bg-white rounded-lg border border-slate-200 p-4 ring-1 ring-emerald-100">
+        <div class="text-xs uppercase tracking-wide text-emerald-700">Protein today (non-negotiable)</div>
+        <div class="mt-1 text-2xl font-semibold">— <span class="text-base font-normal text-slate-400">/ {{ protein_target_g }} g</span></div>
+        <div class="text-xs text-slate-400 mt-1">Meal logging in slice 2</div>
+    </div>
+</section>
+
+{# Today's habits — read-only display in slice 1, HTMX toggles in slice 2. #}
+<section class="mb-8">
+    <h2 class="text-lg font-semibold mb-3">Today's habits</h2>
+    <ul class="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100">
+        {% for row in habit_rows %}
+        <li class="px-4 py-3 flex items-center gap-3">
+            <span class="inline-flex h-5 w-5 items-center justify-center rounded border {% if row.done %}bg-emerald-500 border-emerald-500 text-white{% else %}border-slate-300{% endif %}">
+                {% if row.done %}✓{% endif %}
+            </span>
+            <span class="{% if row.done %}text-slate-900{% else %}text-slate-600{% endif %}">{{ row.label }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% if todays_log %}
+    <p class="text-xs text-slate-500 mt-2">
+        Walked {{ todays_log.walked_minutes }} min{% if todays_log.steps %} · {{ todays_log.steps }} steps{% endif %}
+        · {{ todays_log.habits_completed }}/{{ todays_log.habits_total }} habits done
+    </p>
+    {% else %}
+    <p class="text-xs text-slate-500 mt-2">
+        No log for today yet. Create one via <a class="underline" href="/admin/tracker/dailylog/add/">admin</a> for now.
+    </p>
+    {% endif %}
+</section>
+
+{# Latest weight + week trend #}
+<section class="mb-8">
+    <h2 class="text-lg font-semibold mb-3">Weight</h2>
+    <div class="bg-white rounded-lg border border-slate-200 p-4">
+        {% if latest_weight %}
+            <div class="flex items-baseline justify-between">
+                <div>
+                    <div class="text-xs uppercase tracking-wide text-slate-500">Latest</div>
+                    <div class="mt-1 text-3xl font-semibold">{{ latest_weight.weight_kg }} kg</div>
+                    <div class="text-xs text-slate-400">{{ latest_weight.date|date:"j F Y" }}</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs uppercase tracking-wide text-slate-500">Goal</div>
+                    <div class="mt-1 text-2xl text-slate-700">{{ goal_weight_kg }} kg</div>
+                </div>
+            </div>
+            {% if week_weights %}
+            <div class="mt-4 pt-4 border-t border-slate-100">
+                <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">Last 7 days</div>
+                <ul class="text-sm text-slate-600 space-y-1">
+                    {% for w in week_weights %}
+                        <li class="flex justify-between"><span>{{ w.date|date:"D j M" }}</span><span class="tabular-nums">{{ w.weight_kg }} kg</span></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        {% else %}
+            <p class="text-sm text-slate-500">
+                No weight entries yet. Add one via <a class="underline" href="/admin/tracker/weightentry/add/">admin</a>.
+            </p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
