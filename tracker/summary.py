@@ -371,7 +371,20 @@ def _weight_pace(
 
 
 def _week_to_date(user: Model, on_date: date) -> dict[str, object]:
-    """Monday-to-``on_date`` aggregate: habits hit, walking minutes, weight delta."""
+    """Monday-to-``on_date`` aggregate: habits hit, walking minutes, weight delta.
+
+    ``habits_pct`` is intentionally a *slot-level* metric:
+    ``ticked_habits / (days_elapsed * 5)``. A day where the user ticked 3
+    habits in the morning but never closed out still counts toward the
+    numerator and the denominator. This is the right reading for an
+    in-progress week — it answers "how is the user tracking against the
+    habit grid right now", not "how many days were ritualised".
+
+    The "did the user close out" question is answered separately by the
+    closeout streak + the weekday/weekend adherence band on
+    ``consistency``. The two metrics will sometimes disagree (e.g. lots of
+    taps but no closeouts → high habits_pct, low streak) — that's by design.
+    """
     week_start = on_date - timedelta(days=on_date.weekday())
     logs = list(
         DailyLog.objects.filter(user=user, date__range=(week_start, on_date)).order_by("date")
@@ -398,6 +411,82 @@ def _week_to_date(user: Model, on_date: date) -> dict[str, object]:
         "days_walked": days_walked,
         "weight_delta_kg": weight_delta,
         "weight_count": len(weights),
+    }
+
+
+def _closeout_streak(user: Model, on_date: date) -> int:
+    """Count consecutive days up to ``on_date`` with a completed closeout.
+
+    Pulls only the dates that *have* a non-null ``closed_at`` into a set, then
+    walks backwards from ``on_date`` until the first gap. For a 9–14 month
+    plan the membership query stays trivially small and the loop short-
+    circuits on the first missing day.
+    """
+    closed_dates: set[date] = set(
+        DailyLog.objects.filter(
+            user=user,
+            date__lte=on_date,
+            closed_at__isnull=False,
+        ).values_list("date", flat=True)
+    )
+    streak = 0
+    cursor = on_date
+    while cursor in closed_dates:
+        streak += 1
+        cursor -= timedelta(days=1)
+    return streak
+
+
+def _weekday_weekend_adherence(user: Model, on_date: date) -> dict[str, object]:
+    """Compare last 28 days weekday vs weekend habit completion.
+
+    Window is a **rolling 28 calendar days** ending on ``on_date`` — deliberately
+    not aligned to protocol weeks. The point of this metric is to surface the
+    one pattern the meal-plan doc calls out by name (weekend regression), and
+    a 4-week smoothing window is the natural granularity for that. It will
+    occasionally disagree at the edges with the protocol-week numbers shown
+    elsewhere on the summary; that's expected.
+    """
+    start = on_date - timedelta(days=27)
+    logs = list(DailyLog.objects.filter(user=user, date__range=(start, on_date)))
+    buckets = {
+        "weekday": {"hit": 0, "possible": 0},
+        "weekend": {"hit": 0, "possible": 0},
+    }
+    for log in logs:
+        bucket = "weekend" if log.date.weekday() >= 5 else "weekday"
+        buckets[bucket]["hit"] += log.habits_completed
+        buckets[bucket]["possible"] += log.habits_total
+
+    def pct(bucket: dict[str, int]) -> int | None:
+        if bucket["possible"] == 0:
+            return None
+        return round(bucket["hit"] / bucket["possible"] * 100)
+
+    weekday_pct = pct(buckets["weekday"])
+    weekend_pct = pct(buckets["weekend"])
+    weekend_gap = (
+        weekday_pct - weekend_pct if weekday_pct is not None and weekend_pct is not None else None
+    )
+
+    if weekend_gap is not None and weekend_gap >= 20:
+        message = "Weekend adherence is the current risk pattern."
+        weekend_drop_risk = True
+    elif weekend_pct is not None:
+        message = "Weekend adherence is broadly in line with weekdays."
+        weekend_drop_risk = False
+    else:
+        message = "Log a full weekend to compare consistency."
+        weekend_drop_risk = False
+
+    return {
+        "start": start,
+        "end": on_date,
+        "weekday_pct": weekday_pct,
+        "weekend_pct": weekend_pct,
+        "weekend_gap": weekend_gap,
+        "weekend_drop_risk": weekend_drop_risk,
+        "message": message,
     }
 
 
@@ -462,6 +551,10 @@ def build_progress_summary(user: Model, on_date: date) -> dict[str, object]:
     satiety = _satiety_summary(meals)
     weight = _weight_pace(on_date=on_date, latest_weight=latest_weight, weights=weights_all)
     week_to_date = _week_to_date(user, on_date)
+    consistency = {
+        "closeout_streak": _closeout_streak(user, on_date),
+        "weekday_weekend": _weekday_weekend_adherence(user, on_date),
+    }
 
     # Verdict: protein hit + kcal in range + walking target + 4/5 habits ⇒ ✅.
     protein_hit = macros[1]["status"] == "hit"
@@ -503,9 +596,13 @@ def build_progress_summary(user: Model, on_date: date) -> dict[str, object]:
         "satiety": satiety,
         "weight": weight,
         "week_to_date": week_to_date,
+        "consistency": consistency,
         "verdict": verdict,
         "verdict_level": verdict_level,
         "on_track": on_track,
         "meals": meals,
         "totals": totals,
+        # Surface closeout state so the template can offer "edit today's
+        # closeout" / "close out the day" links without re-querying.
+        "closed_at": daily_log.closed_at if daily_log else None,
     }

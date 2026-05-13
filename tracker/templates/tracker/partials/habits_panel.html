@@ -10,8 +10,14 @@
             hx-swap="outerHTML"
         >
             {% csrf_token %}
-            <button type="submit" class="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-slate-50">
-                <span class="inline-flex h-5 w-5 items-center justify-center rounded border {% if row.done %}bg-emerald-500 border-emerald-500 text-white{% else %}border-slate-300{% endif %}">
+            <button
+                type="submit"
+                aria-pressed="{% if row.done %}true{% else %}false{% endif %}"
+                class="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-slate-50
+                       focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset"
+            >
+                <span aria-hidden="true"
+                      class="inline-flex h-5 w-5 items-center justify-center rounded border {% if row.done %}bg-emerald-500 border-emerald-500 text-white{% else %}border-slate-300{% endif %}">
                     {% if row.done %}✓{% endif %}
                 </span>
                 <span class="{% if row.done %}text-slate-900{% else %}text-slate-600{% endif %}">{{ row.label }}</span>

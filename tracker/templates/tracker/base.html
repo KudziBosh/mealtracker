@@ -4,29 +4,98 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#10b981">
     <title>{% block title %}Mealtracker{% endblock %}</title>
     {# Tailwind via CDN is fine for the MVP. Swap to a built pipeline if/when this grows. #}
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@2.0.3" defer></script>
+    <script defer src="{% static 'tracker/js/app.js' %}"></script>
+    <style>
+        /* Smooth in-page scroll for the mobile FAB anchor jump. */
+        html { scroll-behavior: smooth; }
+        /* Toast fade-in for OOB swaps so the entrance isn't jarring. */
+        [data-toast] { animation: mt-toast-in 180ms ease-out both; }
+        @keyframes mt-toast-in {
+            from { opacity: 0; transform: translate(-50%, 0.5rem); }
+            to   { opacity: 1; transform: translate(-50%, 0); }
+        }
+    </style>
 </head>
-<body class="bg-slate-50 text-slate-900 antialiased">
-    <header class="border-b border-slate-200 bg-white">
-        <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="{% url 'tracker:dashboard' %}" class="font-semibold tracking-tight">
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen pb-20 md:pb-0">
+    {% with active=request.resolver_match.url_name %}
+    <header class="border-b border-slate-200 bg-white sticky top-0 z-30">
+        <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <a href="{% url 'tracker:dashboard' %}" class="font-semibold tracking-tight text-slate-900">
                 Mealtracker
             </a>
-            <nav class="text-sm text-slate-600 flex gap-4">
-                <a href="{% url 'tracker:dashboard' %}" class="hover:text-slate-900">Dashboard</a>
-                <a href="{% url 'tracker:summary' %}" class="hover:text-slate-900">Summary</a>
+            {# Desktop nav: visible from md upwards. Mobile gets the bottom bar instead. #}
+            <nav class="hidden md:flex text-sm text-slate-600 gap-4 items-center">
+                <a href="{% url 'tracker:dashboard' %}" class="hover:text-slate-900 {% if active == 'dashboard' %}text-slate-900 font-medium{% endif %}">Today</a>
+                <a href="{% url 'tracker:closeout' %}" class="hover:text-slate-900 {% if active == 'closeout' %}text-slate-900 font-medium{% endif %}">Closeout</a>
+                <a href="{% url 'tracker:summary' %}" class="hover:text-slate-900 {% if active == 'summary' or active == 'summary-on' %}text-slate-900 font-medium{% endif %}">Summary</a>
+                <a href="{% url 'tracker:logged-meals' %}" class="hover:text-slate-900 {% if active == 'logged-meals' %}text-slate-900 font-medium{% endif %}">Meals</a>
+                <a href="{% url 'tracker:foods' %}" class="hover:text-slate-900 {% if active == 'foods' or active == 'food-add' or active == 'food-edit' %}text-slate-900 font-medium{% endif %}">Foods</a>
+                <a href="{% url 'tracker:recipes' %}" class="hover:text-slate-900 {% if active == 'recipes' or active == 'recipe-add' or active == 'recipe-edit' %}text-slate-900 font-medium{% endif %}">Recipes</a>
                 <a href="/admin/" class="hover:text-slate-900">Admin</a>
-                {% if user.is_authenticated %}
-                    <span class="text-slate-400">{{ user.username }}</span>
-                {% endif %}
             </nav>
+            {# Mobile: just an admin link + user pill so the brand has breathing room. #}
+            <div class="flex items-center gap-3 md:hidden text-sm text-slate-500">
+                <a href="/admin/" class="hover:text-slate-900">Admin</a>
+            </div>
         </div>
     </header>
+
     <main class="max-w-3xl mx-auto px-4 py-6">
         {% block content %}{% endblock %}
     </main>
+
+    {# Mobile bottom tab bar. Hidden on md+ since the top nav covers it. #}
+    <nav
+        class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200
+               grid grid-cols-5 text-xs"
+        aria-label="Primary"
+    >
+        {% url 'tracker:dashboard' as today_url %}
+        {% url 'tracker:closeout' as closeout_url %}
+        {% url 'tracker:summary' as summary_url %}
+        {% url 'tracker:foods' as foods_url %}
+        {% url 'tracker:recipes' as recipes_url %}
+        <a href="{{ today_url }}"
+           class="flex flex-col items-center justify-center py-2 gap-0.5
+                  {% if active == 'dashboard' %}text-emerald-700 font-semibold{% else %}text-slate-500 hover:text-slate-900{% endif %}">
+            <span aria-hidden="true" class="text-lg leading-none">🏠</span>
+            Today
+        </a>
+        <a href="{{ closeout_url }}"
+           class="flex flex-col items-center justify-center py-2 gap-0.5
+                  {% if active == 'closeout' %}text-emerald-700 font-semibold{% else %}text-slate-500 hover:text-slate-900{% endif %}">
+            <span aria-hidden="true" class="text-lg leading-none">✓</span>
+            Close
+        </a>
+        <a href="{{ summary_url }}"
+           class="flex flex-col items-center justify-center py-2 gap-0.5
+                  {% if active == 'summary' or active == 'summary-on' %}text-emerald-700 font-semibold{% else %}text-slate-500 hover:text-slate-900{% endif %}">
+            <span aria-hidden="true" class="text-lg leading-none">📊</span>
+            Summary
+        </a>
+        <a href="{{ foods_url }}"
+           class="flex flex-col items-center justify-center py-2 gap-0.5
+                  {% if active == 'foods' or active == 'food-add' or active == 'food-edit' %}text-emerald-700 font-semibold{% else %}text-slate-500 hover:text-slate-900{% endif %}">
+            <span aria-hidden="true" class="text-lg leading-none">🥦</span>
+            Foods
+        </a>
+        <a href="{{ recipes_url }}"
+           class="flex flex-col items-center justify-center py-2 gap-0.5
+                  {% if active == 'recipes' or active == 'recipe-add' or active == 'recipe-edit' %}text-emerald-700 font-semibold{% else %}text-slate-500 hover:text-slate-900{% endif %}">
+            <span aria-hidden="true" class="text-lg leading-none">🍲</span>
+            Recipes
+        </a>
+    </nav>
+
+    {# Toast region — swapped out-of-band by HTMX responses. Sits above the #}
+    {# mobile bottom nav so it doesn't get covered by the tab bar. #}
+    {% include "tracker/partials/toast.html" with toast=None %}
+
+    {% endwith %}
 </body>
 </html>

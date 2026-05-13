@@ -28,6 +28,7 @@ class DailyLog(models.Model):
     no_alcohol_or_sugar = models.BooleanField(default=False)
 
     notes = models.TextField(blank=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

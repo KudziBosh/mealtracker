@@ -4,6 +4,8 @@ from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
+from tracker import protocol
+
 
 class WeightEntry(models.Model):
     """A single weigh-in. Owner weighs weekly on Tuesday by default."""
@@ -17,7 +19,12 @@ class WeightEntry(models.Model):
     weight_kg = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        validators=[MinValueValidator(30), MaxValueValidator(600)],
+        # Bounds shared with CloseoutWeightForm via protocol.py — see comment
+        # on ``WEIGHT_KG_MIN/MAX`` there for the rationale.
+        validators=[
+            MinValueValidator(protocol.WEIGHT_KG_MIN),
+            MaxValueValidator(protocol.WEIGHT_KG_MAX),
+        ],
     )
     notes = models.TextField(blank=True)
 

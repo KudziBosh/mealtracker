@@ -1,0 +1,119 @@
+{% extends "tracker/base.html" %}
+
+{% block title %}Closeout · Mealtracker{% endblock %}
+
+{% block content %}
+<section class="mb-6">
+    <h1 class="text-2xl font-semibold tracking-tight">Daily closeout</h1>
+    <p class="text-sm text-slate-500 mt-1">
+        {{ today|date:"l, j F Y" }} · Confirm the five protocol habits, walking, notes, and weight.
+    </p>
+    {% if daily_log.closed_at %}
+        <p class="mt-2 text-xs text-emerald-700">Already closed at {{ daily_log.closed_at|time:"H:i" }}. Saving again updates the closeout.</p>
+    {% endif %}
+</section>
+
+<section class="grid gap-4 sm:grid-cols-2 mb-6">
+    <div class="bg-white rounded-lg border border-slate-200 p-4">
+        <div class="text-xs uppercase tracking-wide text-slate-500">Calories</div>
+        <div class="mt-1 text-2xl font-semibold tabular-nums">{{ meal_totals.kcal|floatformat:0 }} / {{ kcal_target }}</div>
+        <p class="text-xs text-slate-500 mt-1">Target range: {{ kcal_floor }}–{{ kcal_target }} kcal.</p>
+    </div>
+    <div class="bg-white rounded-lg border border-slate-200 p-4">
+        <div class="text-xs uppercase tracking-wide text-slate-500">Protein</div>
+        <div class="mt-1 text-2xl font-semibold tabular-nums">{{ meal_totals.protein_g|floatformat:0 }} / {{ protein_target_g }} g</div>
+        <p class="text-xs text-slate-500 mt-1">Non-negotiable target.</p>
+    </div>
+</section>
+
+<form method="post" class="space-y-6">
+    {% csrf_token %}
+
+    <section class="bg-white rounded-lg border border-slate-200 p-4">
+        <h2 class="text-lg font-semibold mb-4">Habits</h2>
+        <p class="text-xs text-slate-500 mb-3">
+            Suggestions come from today's logged meals. Tick or untick to match what actually happened.
+        </p>
+        <div class="space-y-2">
+            {% for row in habit_rows %}
+                <label class="flex items-start gap-3 rounded-md border border-slate-100 p-3 hover:bg-slate-50 cursor-pointer">
+                    {{ row.bound_field }}
+                    <span class="flex-1 flex items-center justify-between gap-3">
+                        <span class="text-sm font-medium text-slate-900">{{ row.label }}</span>
+                        {% if row.suggested %}
+                            <span class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 shrink-0">
+                                Suggested ✓
+                            </span>
+                        {% endif %}
+                    </span>
+                </label>
+                {% if row.bound_field.errors %}
+                    <p class="text-xs text-red-600 mt-1 ml-9">{{ row.bound_field.errors|striptags }}</p>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="bg-white rounded-lg border border-slate-200 p-4 space-y-4">
+        <h2 class="text-lg font-semibold">Walking</h2>
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+                <label for="{{ form.walked_minutes.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Minutes walked</label>
+                {{ form.walked_minutes }}
+                <p class="mt-1 text-xs text-slate-500">{{ walking_threshold }}+ min is the minimum habit threshold.</p>
+                {{ form.walked_minutes.errors }}
+            </div>
+            <div>
+                <label for="{{ form.steps.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Steps optional</label>
+                {{ form.steps }}
+                {{ form.steps.errors }}
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-white rounded-lg border border-slate-200 p-4 space-y-4">
+        <div class="flex items-start justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-semibold">Weight</h2>
+                <p class="text-sm text-slate-500">
+                    {% if weigh_in_due %}Tuesday weigh-in is due today.{% else %}Optional today. Tuesday is the protocol weigh-in day.{% endif %}
+                </p>
+            </div>
+            {% if weight_entry %}
+                {# Surface the existing value rather than just an opaque "Logged" #}
+                {# badge — the user is about to overwrite this and should see it. #}
+                <span class="text-right text-xs text-slate-500 shrink-0">
+                    <span class="block uppercase tracking-wide">Already logged</span>
+                    <span class="block text-base font-semibold text-slate-900 tabular-nums">{{ weight_entry.weight_kg }} kg</span>
+                </span>
+            {% endif %}
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+                <label for="{{ weight_form.weight_kg.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Weight kg</label>
+                {{ weight_form.weight_kg }}
+                {{ weight_form.weight_kg.errors }}
+            </div>
+            <div>
+                <label for="{{ weight_form.weight_notes.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Weight note optional</label>
+                {{ weight_form.weight_notes }}
+                {{ weight_form.weight_notes.errors }}
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-white rounded-lg border border-slate-200 p-4">
+        <label for="{{ form.notes.id_for_label }}" class="block text-lg font-semibold mb-2">Closeout notes</label>
+        <p class="text-sm text-slate-500 mb-3">Energy, hunger, cravings, misses, or what to adjust tomorrow.</p>
+        {{ form.notes }}
+        {{ form.notes.errors }}
+    </section>
+
+    <div class="flex justify-end gap-3">
+        <a href="{% url 'tracker:dashboard' %}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</a>
+        <button type="submit" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+            Save closeout
+        </button>
+    </div>
+</form>
+{% endblock %}

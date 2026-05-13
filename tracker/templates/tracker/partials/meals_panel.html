@@ -1,124 +1,208 @@
-<section id="meals-panel" class="mb-8">
+<section id="meals-panel" class="mb-8" data-meals-panel>
+    {# ---- Macro totals with progress bars --------------------------------- #}
     <div class="grid grid-cols-2 gap-4 mb-4">
+        {# Calories card #}
         <div class="bg-white rounded-lg border border-slate-200 p-4">
             <div class="text-xs uppercase tracking-wide text-slate-500">Calories today</div>
-            <div class="mt-1 text-2xl font-semibold">
-                {{ meal_totals.kcal|floatformat:0 }}
-                <span class="text-base font-normal text-slate-400">/ {{ kcal_target }}</span>
+            <div class="mt-1 flex items-baseline gap-1.5">
+                <span class="text-2xl font-semibold tabular-nums">{{ meal_totals.kcal|floatformat:0 }}</span>
+                <span class="text-sm text-slate-400 tabular-nums">/ {{ kcal_target }}</span>
+            </div>
+            <div class="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full rounded-full
+                    {% if macro_progress.kcal.status == 'warn' %}bg-amber-500{% else %}bg-slate-700{% endif %}"
+                    style="width: {{ macro_progress.kcal.pct_capped }}%;"></div>
+            </div>
+            <div class="mt-1 text-xs text-slate-500 tabular-nums">
+                {% if macro_progress.kcal.over %}
+                    {{ macro_progress.kcal.over|floatformat:0 }} kcal over
+                {% else %}
+                    {{ macro_progress.kcal.remaining|floatformat:0 }} kcal to go
+                {% endif %}
             </div>
         </div>
+
+        {# Protein card — the non-negotiable, so it gets the emerald accent #}
         <div class="bg-white rounded-lg border border-slate-200 p-4 ring-1 ring-emerald-100">
             <div class="text-xs uppercase tracking-wide text-emerald-700">Protein today</div>
-            <div class="mt-1 text-2xl font-semibold">
-                {{ meal_totals.protein_g|floatformat:0 }} g
-                <span class="text-base font-normal text-slate-400">/ {{ protein_target_g }} g</span>
+            <div class="mt-1 flex items-baseline gap-1.5">
+                <span class="text-2xl font-semibold tabular-nums">{{ meal_totals.protein_g|floatformat:0 }}</span>
+                <span class="text-sm text-slate-400 tabular-nums">/ {{ protein_target_g }} g</span>
             </div>
-            <div class="text-xs text-emerald-700 mt-1">Non-negotiable target</div>
+            <div class="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full rounded-full
+                    {% if macro_progress.protein.status == 'hit' %}bg-emerald-500{% else %}bg-red-400{% endif %}"
+                    style="width: {{ macro_progress.protein.pct_capped }}%;"></div>
+            </div>
+            <div class="mt-1 text-xs text-emerald-700 tabular-nums">
+                {% if macro_progress.protein.status == 'hit' %}
+                    Target hit
+                {% else %}
+                    {{ macro_progress.protein.remaining|floatformat:0 }} g to go
+                {% endif %}
+            </div>
         </div>
     </div>
 
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-        <div class="flex items-center justify-between gap-3 mb-4">
+    {# ---- Log a meal ----------------------------------------------------- #}
+    <div class="bg-white rounded-lg border border-slate-200 p-4" id="meal-log-anchor">
+        <div class="flex items-center justify-between gap-3 mb-3">
             <h2 class="text-lg font-semibold">Log a meal</h2>
             <div class="text-xs text-slate-500">
                 Fat {{ meal_totals.fat_g|floatformat:1 }} g · Carbs {{ meal_totals.carb_g|floatformat:1 }} g
             </div>
         </div>
 
-        {# ---- Log a saved recipe (multi-ingredient one-tap) ---- #}
-        <form
-            method="post"
-            action="{% url 'tracker:htmx-log-template' %}"
-            hx-post="{% url 'tracker:htmx-log-template' %}"
-            hx-target="#meals-panel"
-            hx-swap="outerHTML"
-            class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end mb-4"
+        {# Segmented control: recipe vs single food. JS in app.js toggles #}
+        {# the data-form attribute on the wrapper; CSS hides the inactive one. #}
+        <div
+            class="mb-4"
+            data-log-toggle
+            data-active="recipe"
         >
-            {% csrf_token %}
-            <div>
-                <label for="id_meal_template" class="block text-sm font-medium text-slate-700 mb-1">Pick a recipe</label>
-                <select name="meal_template" id="id_meal_template"
-                        class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-                    <option value="">Choose a recipe…</option>
-                    {% for group in grouped_templates %}
-                        <optgroup label="{{ group.label }}">
-                            {% for tpl in group.templates %}
-                                <option value="{{ tpl.id }}">{{ tpl.name }}</option>
-                            {% endfor %}
-                        </optgroup>
-                    {% endfor %}
-                </select>
-                {% if template_form.meal_template.errors %}
-                    <p class="text-xs text-red-600 mt-1">{{ template_form.meal_template.errors|striptags }}</p>
-                {% endif %}
+            <div role="tablist" aria-label="Log meal as" class="inline-flex p-1 rounded-md bg-slate-100 text-sm">
+                <button
+                    type="button"
+                    role="tab"
+                    data-log-tab="recipe"
+                    aria-selected="true"
+                    class="px-3 py-1.5 rounded-md font-medium transition-colors
+                           data-[active=true]:bg-white data-[active=true]:text-slate-900 data-[active=true]:shadow-sm
+                           text-slate-600"
+                    data-active="true"
+                >
+                    Recipe
+                </button>
+                <button
+                    type="button"
+                    role="tab"
+                    data-log-tab="food"
+                    aria-selected="false"
+                    class="px-3 py-1.5 rounded-md font-medium transition-colors
+                           data-[active=true]:bg-white data-[active=true]:text-slate-900 data-[active=true]:shadow-sm
+                           text-slate-600"
+                    data-active="false"
+                >
+                    Single food
+                </button>
             </div>
-            <button type="submit" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
-                Log recipe
-            </button>
-        </form>
 
-        <div class="relative flex items-center mb-4">
-            <div class="flex-grow border-t border-slate-200"></div>
-            <span class="mx-3 text-xs uppercase tracking-wide text-slate-400">or one food</span>
-            <div class="flex-grow border-t border-slate-200"></div>
+            {# ---- Recipe form ---------------------------------------------- #}
+            <form
+                method="post"
+                action="{% url 'tracker:htmx-log-template' %}"
+                hx-post="{% url 'tracker:htmx-log-template' %}"
+                hx-target="#meals-panel"
+                hx-swap="outerHTML"
+                class="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end"
+                data-log-form="recipe"
+            >
+                {% csrf_token %}
+                <div>
+                    <label for="id_meal_template" class="block text-sm font-medium text-slate-700 mb-1">Pick a recipe</label>
+                    <select name="meal_template" id="id_meal_template"
+                            class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
+                        <option value="">Choose a recipe…</option>
+                        {% for group in grouped_templates %}
+                            <optgroup label="{{ group.label }}">
+                                {% for tpl in group.templates %}
+                                    <option value="{{ tpl.id }}">{{ tpl.name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                        {% endfor %}
+                    </select>
+                    {% if template_form.meal_template.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ template_form.meal_template.errors|striptags }}</p>
+                    {% endif %}
+                </div>
+                <button type="submit"
+                        class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700
+                               focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2">
+                    Log recipe
+                </button>
+            </form>
+
+            {# ---- Single food form (combobox + grams) --------------------- #}
+            <form
+                method="post"
+                action="{% url 'tracker:htmx-log-meal' %}"
+                hx-post="{% url 'tracker:htmx-log-meal' %}"
+                hx-target="#meals-panel"
+                hx-swap="outerHTML"
+                class="mt-3 grid gap-3 sm:grid-cols-[1fr_8rem_auto] sm:items-end"
+                style="display: none;"
+                data-log-form="food"
+                data-food-combobox
+            >
+                {% csrf_token %}
+                <div class="relative">
+                    <label for="food-search-input" class="block text-sm font-medium text-slate-700 mb-1">Food</label>
+                    <input
+                        type="text"
+                        id="food-search-input"
+                        placeholder="Search foods…"
+                        autocomplete="off"
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-expanded="false"
+                        aria-controls="food-search-results"
+                        data-food-search-input
+                        hx-get="{% url 'tracker:htmx-food-search' %}"
+                        hx-trigger="input changed delay:150ms, focus once"
+                        hx-target="#food-search-results"
+                        hx-swap="outerHTML"
+                        name="food_search"
+                        class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
+                    >
+                    <input
+                        type="hidden"
+                        name="{{ meal_form.food.name }}"
+                        id="{{ meal_form.food.id_for_label }}"
+                        data-food-id-input
+                    >
+                    {# Empty target placeholder; HTMX swaps the whole <ul> on first search. #}
+                    <ul id="food-search-results"
+                        class="absolute z-20 mt-1 w-full max-h-72 overflow-auto rounded-md bg-white border border-slate-200 shadow-lg hidden"
+                        role="listbox"></ul>
+                    {% if meal_form.food.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ meal_form.food.errors|striptags }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ meal_form.grams.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Grams</label>
+                    <input
+                        type="number"
+                        name="{{ meal_form.grams.name }}"
+                        id="{{ meal_form.grams.id_for_label }}"
+                        step="0.01"
+                        min="0.01"
+                        inputmode="decimal"
+                        placeholder="(uses default)"
+                        data-grams-input
+                        class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
+                    >
+                    {% if meal_form.grams.errors %}
+                        <p class="text-xs text-red-600 mt-1">{{ meal_form.grams.errors|striptags }}</p>
+                    {% endif %}
+                </div>
+                <button type="submit"
+                        class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700
+                               focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2">
+                    Add
+                </button>
+            </form>
         </div>
 
-        {# ---- Log a single food (grams optional → uses food.default_grams) ---- #}
-        <form
-            method="post"
-            action="{% url 'tracker:htmx-log-meal' %}"
-            hx-post="{% url 'tracker:htmx-log-meal' %}"
-            hx-target="#meals-panel"
-            hx-swap="outerHTML"
-            class="grid gap-3 sm:grid-cols-[1fr_8rem_auto] sm:items-end"
-        >
-            {% csrf_token %}
-            <div>
-                <label for="{{ meal_form.food.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Food</label>
-                {# Plain select so we can attach onchange to fetch the default grams. #}
-                <select name="{{ meal_form.food.name }}"
-                        id="{{ meal_form.food.id_for_label }}"
-                        data-grams-input="{{ meal_form.grams.id_for_label }}"
-                        data-default-url="{% url 'tracker:htmx-food-default' 0 %}"
-                        onchange='(async (sel) => {
-                          const v = sel.value;
-                          const input = document.getElementById(sel.dataset.gramsInput);
-                          if (!v) return;
-                          const url = sel.dataset.defaultUrl.replace("/0/", "/" + v + "/");
-                          try {
-                            const r = await fetch(url, {headers: {"Accept": "application/json"}});
-                            if (!r.ok) return;
-                            const j = await r.json();
-                            if (j.default_grams && !input.value) input.value = j.default_grams;
-                          } catch (e) { /* swallow — server fallback still works */ }
-                        })(this)'
-                        class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-                    <option value="">Choose a food</option>
-                    {% for food in meal_form.fields.food.queryset %}
-                        <option value="{{ food.id }}"
-                                {% if meal_form.food.value|stringformat:'s' == food.id|stringformat:'s' %}selected{% endif %}>
-                            {{ food.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-                {% if meal_form.food.errors %}
-                    <p class="text-xs text-red-600 mt-1">{{ meal_form.food.errors|striptags }}</p>
-                {% endif %}
-            </div>
-            <div>
-                <label for="{{ meal_form.grams.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Grams</label>
-                {{ meal_form.grams }}
-                {% if meal_form.grams.errors %}
-                    <p class="text-xs text-red-600 mt-1">{{ meal_form.grams.errors|striptags }}</p>
-                {% endif %}
-            </div>
-            <button type="submit" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
-                Add
-            </button>
-        </form>
-
+        {# ---- Today's meals -------------------------------------------- #}
         <div class="mt-5 border-t border-slate-100 pt-4">
-            <h3 class="text-sm font-semibold text-slate-700 mb-2">Today's meals</h3>
+            <div class="flex items-baseline justify-between mb-2">
+                <h3 class="text-sm font-semibold text-slate-700">Today's meals</h3>
+                {% if meals %}
+                    <a href="{% url 'tracker:logged-meals' %}" class="text-xs text-slate-500 hover:text-slate-900 underline">
+                        Edit
+                    </a>
+                {% endif %}
+            </div>
             {% if meals %}
                 <ul class="divide-y divide-slate-100">
                     {% for meal in meals %}
@@ -137,7 +221,11 @@
                     {% endfor %}
                 </ul>
             {% else %}
-                <p class="text-sm text-slate-500">No meals logged yet today.</p>
+                <p class="text-sm text-slate-500">
+                    No meals logged yet today.
+                    Tap <span class="font-medium text-slate-700">Recipe</span> for a one-tap log, or
+                    <span class="font-medium text-slate-700">Single food</span> to add one item.
+                </p>
             {% endif %}
         </div>
     </div>

@@ -3,7 +3,7 @@
 {% block title %}Today · Mealtracker{% endblock %}
 
 {% block content %}
-<section class="mb-8">
+<section class="mb-6">
     <h1 class="text-2xl font-semibold tracking-tight">
         {{ today|date:"l, j F Y" }}
     </h1>
@@ -16,6 +16,43 @@
 
 {% include "tracker/partials/habits_panel.html" %}
 
+{# Weight card — moved above end-of-day because the user references their #}
+{# weight more often than the end-of-day summary during the working day. #}
+<section class="mb-8">
+    <h2 class="text-lg font-semibold mb-3">Weight</h2>
+    <div class="bg-white rounded-lg border border-slate-200 p-4">
+        {% if latest_weight %}
+            <div class="flex items-baseline justify-between">
+                <div>
+                    <div class="text-xs uppercase tracking-wide text-slate-500">Latest</div>
+                    <div class="mt-1 text-3xl font-semibold tabular-nums">{{ latest_weight.weight_kg }} kg</div>
+                    <div class="text-xs text-slate-400">{{ latest_weight.date|date:"j F Y" }}</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs uppercase tracking-wide text-slate-500">Goal</div>
+                    <div class="mt-1 text-2xl text-slate-700 tabular-nums">{{ goal_weight_kg }} kg</div>
+                </div>
+            </div>
+            {% if week_weights %}
+            <div class="mt-4 pt-4 border-t border-slate-100">
+                <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">Last 7 days</div>
+                <ul class="text-sm text-slate-600 space-y-1">
+                    {% for w in week_weights %}
+                        <li class="flex justify-between"><span>{{ w.date|date:"D j M" }}</span><span class="tabular-nums">{{ w.weight_kg }} kg</span></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        {% else %}
+            <p class="text-sm text-slate-500">
+                No weight entries yet. Add one via <a class="underline" href="/admin/tracker/weightentry/add/">admin</a>.
+            </p>
+        {% endif %}
+    </div>
+</section>
+
+{# End-of-day verdict card stays near the bottom — it's reflective content, #}
+{# not action-driving. Keeps the action surfaces (log + habits) up top. #}
 <section class="mb-8">
     <div class="bg-slate-900 rounded-lg p-5 text-white">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -28,9 +65,9 @@
                 <div class="rounded-full bg-white/10 px-3 py-1 text-sm font-semibold">
                     {{ end_of_day_summary.hit_count }}/{{ end_of_day_summary.total_count }} checks
                 </div>
-                <a href="{% url 'tracker:summary' %}"
+                <a href="{% url 'tracker:closeout' %}"
                    class="rounded-md bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1.5 text-xs font-semibold whitespace-nowrap">
-                    Full summary →
+                    Close out →
                 </a>
             </div>
         </div>
@@ -52,37 +89,17 @@
     </div>
 </section>
 
-{# Latest weight + week trend #}
-<section class="mb-8">
-    <h2 class="text-lg font-semibold mb-3">Weight</h2>
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-        {% if latest_weight %}
-            <div class="flex items-baseline justify-between">
-                <div>
-                    <div class="text-xs uppercase tracking-wide text-slate-500">Latest</div>
-                    <div class="mt-1 text-3xl font-semibold">{{ latest_weight.weight_kg }} kg</div>
-                    <div class="text-xs text-slate-400">{{ latest_weight.date|date:"j F Y" }}</div>
-                </div>
-                <div class="text-right">
-                    <div class="text-xs uppercase tracking-wide text-slate-500">Goal</div>
-                    <div class="mt-1 text-2xl text-slate-700">{{ goal_weight_kg }} kg</div>
-                </div>
-            </div>
-            {% if week_weights %}
-            <div class="mt-4 pt-4 border-t border-slate-100">
-                <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">Last 7 days</div>
-                <ul class="text-sm text-slate-600 space-y-1">
-                    {% for w in week_weights %}
-                        <li class="flex justify-between"><span>{{ w.date|date:"D j M" }}</span><span class="tabular-nums">{{ w.weight_kg }} kg</span></li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-        {% else %}
-            <p class="text-sm text-slate-500">
-                No weight entries yet. Add one via <a class="underline" href="/admin/tracker/weightentry/add/">admin</a>.
-            </p>
-        {% endif %}
-    </div>
-</section>
+{# Quick-log FAB — mobile only, sits above the bottom tab bar. Scrolls to #}
+{# the meal-log section and focuses the food search so a meal is one tap away. #}
+<a
+    href="#meal-log-anchor"
+    data-quick-log-fab
+    aria-label="Quick log a meal"
+    class="md:hidden fixed right-4 bottom-20 z-30
+           w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-700
+           text-white shadow-lg flex items-center justify-center
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+>
+    <span aria-hidden="true" class="text-3xl leading-none -mt-0.5">+</span>
+</a>
 {% endblock %}

@@ -1,0 +1,54 @@
+{# Out-of-band toast region. Always renders the wrapper so HTMX can swap it #}
+{# into base.html's #toast-area whether or not a toast is set — that's how an #}
+{# undo response clears the previous toast in the same swap. #}
+<div id="toast-area" hx-swap-oob="innerHTML">
+    {% if toast %}
+        <div
+            class="pointer-events-auto fixed bottom-20 left-1/2 -translate-x-1/2 z-40
+                   w-[min(28rem,calc(100vw-1.5rem))]
+                   md:bottom-6
+                   rounded-lg shadow-lg ring-1
+                   {% if toast.kind == 'success' %}bg-emerald-600 text-white ring-emerald-700{% elif toast.kind == 'error' %}bg-red-600 text-white ring-red-700{% else %}bg-slate-800 text-white ring-slate-900{% endif %}"
+            role="status"
+            aria-live="polite"
+            data-toast
+        >
+            <div class="flex items-center gap-3 px-4 py-3">
+                <span class="text-sm font-medium flex-1">{{ toast.message }}</span>
+                {% if toast.undo_url %}
+                    <form
+                        method="post"
+                        action="{{ toast.undo_url }}"
+                        hx-post="{{ toast.undo_url }}"
+                        hx-headers='{"X-Undo": "true"}'
+                        hx-target="{{ toast.undo_target|default:'#meals-panel' }}"
+                        hx-swap="outerHTML"
+                        class="shrink-0"
+                    >
+                        {% csrf_token %}
+                        {% for name, value in toast.undo_payload.items %}
+                            <input type="hidden" name="{{ name }}" value="{{ value }}">
+                        {% endfor %}
+                        <button
+                            type="submit"
+                            class="text-xs font-bold uppercase tracking-wide
+                                   underline-offset-2 hover:underline focus:outline-none
+                                   focus-visible:ring-2 focus-visible:ring-white/70 rounded"
+                        >
+                            Undo
+                        </button>
+                    </form>
+                {% endif %}
+                <button
+                    type="button"
+                    data-toast-dismiss
+                    aria-label="Dismiss notification"
+                    class="shrink-0 text-white/80 hover:text-white text-lg leading-none
+                           focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 rounded"
+                >
+                    ×
+                </button>
+            </div>
+        </div>
+    {% endif %}
+</div>

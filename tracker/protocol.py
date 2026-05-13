@@ -13,6 +13,14 @@ from datetime import date, time, timedelta
 START_WEIGHT_KG = 120
 GOAL_WEIGHT_KG = 90
 
+# Acceptable bounds for any weigh-in. Owner-specific but generous on both
+# sides so an accidental scale error (e.g. an empty 0.0 read or a stray
+# decimal place) gets caught by the model + form validators rather than
+# polluting the trend. Shared between WeightEntry model validators and the
+# closeout's CloseoutWeightForm so they can't drift apart.
+WEIGHT_KG_MIN = 30
+WEIGHT_KG_MAX = 600
+
 # Plan duration window from CLAUDE.md: 9–14 months for the 30 kg drop. Used to
 # bound the "are you on pace?" check on the end-of-day summary.
 PLAN_DURATION_WEEKS_MIN = 9 * 4  # 36 weeks ≈ 9 months

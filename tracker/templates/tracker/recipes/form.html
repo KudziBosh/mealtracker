@@ -1,0 +1,77 @@
+{% extends "tracker/base.html" %}
+
+{% block title %}{% if recipe %}Edit recipe{% else %}Add recipe{% endif %} · Mealtracker{% endblock %}
+
+{% block content %}
+<section class="mb-6">
+    <a href="{% url 'tracker:recipes' %}" class="text-sm text-slate-500 hover:text-slate-900">← Recipes</a>
+    <h1 class="text-2xl font-semibold tracking-tight mt-2">
+        {% if recipe %}Edit {{ recipe.name }}{% else %}Add recipe{% endif %}
+    </h1>
+    <p class="text-sm text-slate-500 mt-1">
+        Add each ingredient as a food plus cooked/served grams. These rows become editable meal entries when logged.
+    </p>
+</section>
+
+<form method="post" class="space-y-6">
+    {% csrf_token %}
+
+    <section class="bg-white rounded-lg border border-slate-200 p-4 space-y-4">
+        <h2 class="text-lg font-semibold">Recipe details</h2>
+        {{ form.non_field_errors }}
+        <div class="grid gap-4 sm:grid-cols-[1fr_12rem]">
+            <div>
+                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                {{ form.name }}
+                {{ form.name.errors }}
+            </div>
+            <div>
+                <label for="{{ form.category.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Category</label>
+                {{ form.category }}
+                {{ form.category.errors }}
+            </div>
+        </div>
+        <div>
+            <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+            {{ form.notes }}
+            {{ form.notes.errors }}
+        </div>
+    </section>
+
+    <section class="bg-white rounded-lg border border-slate-200 p-4">
+        <h2 class="text-lg font-semibold mb-4">Ingredients</h2>
+        {{ formset.management_form }}
+        {{ formset.non_form_errors }}
+
+        <div class="space-y-3">
+            {% for item_form in formset %}
+            <div class="grid gap-3 sm:grid-cols-[1fr_8rem_5rem] sm:items-end border border-slate-100 rounded-md p-3">
+                {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+                <div>
+                    <label for="{{ item_form.food.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Food</label>
+                    {{ item_form.food }}
+                    {{ item_form.food.errors }}
+                </div>
+                <div>
+                    <label for="{{ item_form.grams.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Grams</label>
+                    {{ item_form.grams }}
+                    {{ item_form.grams.errors }}
+                </div>
+                {% if item_form.DELETE %}
+                <label class="text-sm text-slate-600 pb-2">
+                    {{ item_form.DELETE }} Delete
+                </label>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div class="flex justify-end gap-3">
+        <a href="{% url 'tracker:recipes' %}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</a>
+        <button type="submit" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+            Save recipe
+        </button>
+    </div>
+</form>
+{% endblock %}
