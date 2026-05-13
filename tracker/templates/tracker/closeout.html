@@ -3,117 +3,212 @@
 {% block title %}Closeout · Mealtracker{% endblock %}
 
 {% block content %}
-<section class="mb-6">
-    <h1 class="text-2xl font-semibold tracking-tight">Daily closeout</h1>
-    <p class="text-sm text-slate-500 mt-1">
-        {{ today|date:"l, j F Y" }} · Confirm the five protocol habits, walking, notes, and weight.
+<div class="space-y-stack-md pb-stack-lg">
+
+  {# ── Page header ─────────────────────────────────────────────────────────── #}
+  <header>
+    <h2 class="font-display text-display text-primary">Daily Closeout</h2>
+    <p class="font-body-md text-body-md text-on-surface-variant mt-2 max-w-xl">
+      {{ target_date|date:"l, j F Y" }} · Confirm the five protocol habits, walking, notes, and weight.
     </p>
-    {% if daily_log.closed_at %}
-        <p class="mt-2 text-xs text-emerald-700">Already closed at {{ daily_log.closed_at|time:"H:i" }}. Saving again updates the closeout.</p>
+
+    {% if not is_today %}
+      <div class="mt-4 rounded-xl border border-secondary-fixed bg-secondary-fixed px-4 py-3 font-body-md text-body-md text-on-secondary-fixed-variant">
+        <span class="material-symbols-outlined fill text-secondary shrink-0 align-middle" style="font-size:18px">warning</span>
+        Closing out {{ days_late }} day{{ days_late|pluralize }} late.
+        Be honest — only tick what actually happened on {{ target_date|date:"D j M" }}.
+      </div>
     {% endif %}
-</section>
 
-<section class="grid gap-4 sm:grid-cols-2 mb-6">
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-        <div class="text-xs uppercase tracking-wide text-slate-500">Calories</div>
-        <div class="mt-1 text-2xl font-semibold tabular-nums">{{ meal_totals.kcal|floatformat:0 }} / {{ kcal_target }}</div>
-        <p class="text-xs text-slate-500 mt-1">Target range: {{ kcal_floor }}–{{ kcal_target }} kcal.</p>
-    </div>
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-        <div class="text-xs uppercase tracking-wide text-slate-500">Protein</div>
-        <div class="mt-1 text-2xl font-semibold tabular-nums">{{ meal_totals.protein_g|floatformat:0 }} / {{ protein_target_g }} g</div>
-        <p class="text-xs text-slate-500 mt-1">Non-negotiable target.</p>
-    </div>
-</section>
+    {% if daily_log.closed_at %}
+      <div class="mt-3 flex items-center gap-2 font-label-md text-label-md text-primary">
+        <span class="material-symbols-outlined fill" style="font-size:16px">check_circle</span>
+        Already closed at {{ daily_log.closed_at|date:"j M, H:i" }}. Saving again updates the entry.
+      </div>
+    {% endif %}
+  </header>
 
-<form method="post" class="space-y-6">
+  {# ── Macro snapshot cards ─────────────────────────────────────────────────── #}
+  <div class="grid grid-cols-2 gap-stack-sm">
+    <div class="bg-surface-container-lowest rounded-xl p-5 shadow-soft border border-outline-variant">
+      <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Calories</span>
+      <span class="block font-display text-headline-lg text-primary mt-1 tabular-nums">{{ meal_totals.kcal|floatformat:0 }}</span>
+      <span class="block font-label-md text-label-md text-on-surface-variant">/ {{ kcal_target }} kcal</span>
+      <p class="font-label-md text-label-md text-on-surface-variant mt-2">Target range: {{ kcal_floor }}–{{ kcal_target }} kcal.</p>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-5 shadow-soft border border-outline-variant">
+      <span class="block font-label-md text-label-md text-secondary uppercase tracking-wide">Protein</span>
+      <span class="block font-display text-headline-lg text-primary mt-1 tabular-nums">{{ meal_totals.protein_g|floatformat:0 }}</span>
+      <span class="block font-label-md text-label-md text-on-surface-variant">/ {{ protein_target_g }} g</span>
+      <p class="font-label-md text-label-md text-secondary mt-2">Non-negotiable target.</p>
+    </div>
+  </div>
+
+  {# ── Main form ────────────────────────────────────────────────────────────── #}
+  <form method="post">
     {% csrf_token %}
 
-    <section class="bg-white rounded-lg border border-slate-200 p-4">
-        <h2 class="text-lg font-semibold mb-4">Habits</h2>
-        <p class="text-xs text-slate-500 mb-3">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+
+      {# Habits — 8 cols on desktop #}
+      <section class="md:col-span-8 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-soft p-stack-md flex flex-col gap-stack-sm hover:shadow-[0px_8px_24px_rgba(0,0,0,0.06)] transition-shadow">
+        <div>
+          <h3 class="font-display text-headline-lg text-primary mb-1">Habits</h3>
+          <p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">
             Suggestions come from today's logged meals. Tick or untick to match what actually happened.
-        </p>
-        <div class="space-y-2">
-            {% for row in habit_rows %}
-                <label class="flex items-start gap-3 rounded-md border border-slate-100 p-3 hover:bg-slate-50 cursor-pointer">
-                    {{ row.bound_field }}
-                    <span class="flex-1 flex items-center justify-between gap-3">
-                        <span class="text-sm font-medium text-slate-900">{{ row.label }}</span>
-                        {% if row.suggested %}
-                            <span class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 shrink-0">
-                                Suggested ✓
-                            </span>
-                        {% endif %}
-                    </span>
-                </label>
-                {% if row.bound_field.errors %}
-                    <p class="text-xs text-red-600 mt-1 ml-9">{{ row.bound_field.errors|striptags }}</p>
+          </p>
+        </div>
+        <div class="flex flex-col gap-2 mt-1">
+          {% for row in habit_rows %}
+            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-container-low cursor-pointer transition-colors border border-transparent hover:border-outline-variant">
+              {# Render the Django form field as a custom-checkbox #}
+              {% with bf=row.bound_field %}
+                <input
+                    type="checkbox"
+                    name="{{ bf.html_name }}"
+                    id="{{ bf.id_for_label }}"
+                    class="custom-checkbox"
+                    {% if bf.value %}checked{% endif %}
+                >
+              {% endwith %}
+              <span class="flex-1 flex items-center justify-between gap-3">
+                <span class="font-body-md text-body-md text-on-background select-none">{{ row.label }}</span>
+                {% if row.suggested %}
+                  <span class="font-label-md text-label-md px-2 py-0.5 rounded-full
+                               bg-primary-fixed text-on-primary-fixed-variant shrink-0">
+                    <span class="material-symbols-outlined fill align-middle" style="font-size:12px">check</span>
+                    Suggested
+                  </span>
                 {% endif %}
-            {% endfor %}
-        </div>
-    </section>
-
-    <section class="bg-white rounded-lg border border-slate-200 p-4 space-y-4">
-        <h2 class="text-lg font-semibold">Walking</h2>
-        <div class="grid gap-4 sm:grid-cols-2">
-            <div>
-                <label for="{{ form.walked_minutes.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Minutes walked</label>
-                {{ form.walked_minutes }}
-                <p class="mt-1 text-xs text-slate-500">{{ walking_threshold }}+ min is the minimum habit threshold.</p>
-                {{ form.walked_minutes.errors }}
-            </div>
-            <div>
-                <label for="{{ form.steps.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Steps optional</label>
-                {{ form.steps }}
-                {{ form.steps.errors }}
-            </div>
-        </div>
-    </section>
-
-    <section class="bg-white rounded-lg border border-slate-200 p-4 space-y-4">
-        <div class="flex items-start justify-between gap-3">
-            <div>
-                <h2 class="text-lg font-semibold">Weight</h2>
-                <p class="text-sm text-slate-500">
-                    {% if weigh_in_due %}Tuesday weigh-in is due today.{% else %}Optional today. Tuesday is the protocol weigh-in day.{% endif %}
-                </p>
-            </div>
-            {% if weight_entry %}
-                {# Surface the existing value rather than just an opaque "Logged" #}
-                {# badge — the user is about to overwrite this and should see it. #}
-                <span class="text-right text-xs text-slate-500 shrink-0">
-                    <span class="block uppercase tracking-wide">Already logged</span>
-                    <span class="block text-base font-semibold text-slate-900 tabular-nums">{{ weight_entry.weight_kg }} kg</span>
-                </span>
+              </span>
+            </label>
+            {% if row.bound_field.errors %}
+              <p class="font-label-md text-label-md text-error mt-1 ml-10">{{ row.bound_field.errors|striptags }}</p>
             {% endif %}
+          {% endfor %}
         </div>
-        <div class="grid gap-4 sm:grid-cols-2">
-            <div>
-                <label for="{{ weight_form.weight_kg.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Weight kg</label>
-                {{ weight_form.weight_kg }}
-                {{ weight_form.weight_kg.errors }}
-            </div>
-            <div>
-                <label for="{{ weight_form.weight_notes.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Weight note optional</label>
-                {{ weight_form.weight_notes }}
-                {{ weight_form.weight_notes.errors }}
-            </div>
-        </div>
-    </section>
+      </section>
 
-    <section class="bg-white rounded-lg border border-slate-200 p-4">
-        <label for="{{ form.notes.id_for_label }}" class="block text-lg font-semibold mb-2">Closeout notes</label>
-        <p class="text-sm text-slate-500 mb-3">Energy, hunger, cravings, misses, or what to adjust tomorrow.</p>
+      {# Sidebar — 4 cols on desktop #}
+      <div class="md:col-span-4 flex flex-col gap-gutter">
+
+        {# Walking #}
+        <section class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-soft p-stack-md flex flex-col gap-unit hover:shadow-[0px_8px_24px_rgba(0,0,0,0.06)] transition-shadow">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-display text-headline-md text-primary">Walking</h3>
+            <span class="material-symbols-outlined text-tertiary-fixed-dim" style="font-size:24px;font-variation-settings:'FILL' 1">directions_walk</span>
+          </div>
+          <div>
+            <label for="{{ form.walked_minutes.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant mb-1 uppercase tracking-wide">Minutes walked</label>
+            <div class="relative">
+              {{ form.walked_minutes }}
+              <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none font-label-md text-label-md text-on-surface-variant">min</span>
+            </div>
+            {{ form.walked_minutes.errors }}
+            <p class="font-label-md text-label-md text-on-surface-variant mt-2 opacity-80">{{ walking_threshold }}+ min is the minimum habit threshold.</p>
+          </div>
+          <div>
+            <label for="{{ form.steps.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant mb-1 uppercase tracking-wide">Steps optional</label>
+            {{ form.steps }}
+            {{ form.steps.errors }}
+          </div>
+        </section>
+
+        {# Weight #}
+        <section class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-soft p-stack-md flex flex-col gap-unit hover:shadow-[0px_8px_24px_rgba(0,0,0,0.06)] transition-shadow">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="font-display text-headline-md text-primary">Weight</h3>
+            <span class="material-symbols-outlined text-secondary-fixed-dim" style="font-size:24px;font-variation-settings:'FILL' 1">scale</span>
+          </div>
+          <p class="font-label-md text-label-md text-secondary uppercase tracking-wider">
+            {% if weigh_in_due %}Tuesday weigh-in is due today.{% else %}Optional today. Tuesday is the protocol weigh-in day.{% endif %}
+          </p>
+          {% if weight_entry %}
+            <p class="font-label-md text-label-md text-on-surface-variant">
+              Already logged: <span class="font-medium text-on-surface tabular-nums">{{ weight_entry.weight_kg }} kg</span>
+            </p>
+          {% endif %}
+          <div>
+            <label for="{{ weight_form.weight_kg.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant mb-1 uppercase tracking-wide">Weight kg</label>
+            <div class="relative">
+              {{ weight_form.weight_kg }}
+              <span class="absolute inset-y-0 right-4 flex items-center pointer-events-none font-label-md text-label-md text-on-surface-variant">kg</span>
+            </div>
+            {{ weight_form.weight_kg.errors }}
+          </div>
+          <div>
+            <label for="{{ weight_form.weight_notes.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant mb-1 uppercase tracking-wide">Note optional</label>
+            {{ weight_form.weight_notes }}
+            {{ weight_form.weight_notes.errors }}
+          </div>
+        </section>
+
+      </div>
+
+      {# Notes — full width #}
+      <section class="md:col-span-12 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-soft p-stack-md flex flex-col gap-unit hover:shadow-[0px_8px_24px_rgba(0,0,0,0.06)] transition-shadow">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-display text-headline-md text-primary">Closeout notes</h3>
+          <span class="material-symbols-outlined text-outline" style="font-size:22px">edit_note</span>
+        </div>
+        <label class="sr-only" for="{{ form.notes.id_for_label }}">Closeout notes</label>
         {{ form.notes }}
         {{ form.notes.errors }}
-    </section>
+      </section>
 
-    <div class="flex justify-end gap-3">
-        <a href="{% url 'tracker:dashboard' %}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</a>
-        <button type="submit" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-            Save closeout
-        </button>
     </div>
-</form>
+
+    {# ── Actions ──────────────────────────────────────────────────────────── #}
+    <div class="mt-stack-sm pt-stack-sm border-t border-surface-dim flex flex-col sm:flex-row justify-end gap-3">
+      <a href="{% url 'tracker:dashboard' %}"
+         class="rounded-lg border border-outline-variant px-6 py-3 font-label-md text-label-md text-on-surface-variant
+                hover:bg-surface-container-low transition-colors text-center">
+        Cancel
+      </a>
+      <button type="submit"
+              class="w-full sm:w-auto bg-primary text-on-primary font-label-md text-label-md px-8 py-4 rounded-lg
+                     hover:bg-primary-container hover:text-on-primary-container shadow-sm hover:shadow-md
+                     transition-all active:scale-95 duration-150 flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined fill" style="font-size:18px">done_all</span>
+        Save closeout
+      </button>
+    </div>
+
+  </form>
+</div>
+
+{# Override form field styles via Tailwind apply pattern — we inject them here #}
+{# because Django renders inputs as plain HTML and the CDN cannot scan templates. #}
+<style>
+  /* Style Django-rendered form inputs for closeout page */
+  form input[type="number"],
+  form input[type="text"],
+  form select,
+  form textarea {
+    width: 100%;
+    background-color: #f0eee9; /* surface-container */
+    border: 1px solid #c2c8c0; /* outline-variant */
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #1b1c19; /* on-surface */
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  form input[type="number"]:focus,
+  form input[type="text"]:focus,
+  form select:focus,
+  form textarea:focus {
+    outline: none;
+    border-color: #163422; /* primary */
+    box-shadow: 0 0 0 2px rgba(22,52,34,0.2);
+  }
+  form input[type="number"] {
+    padding-right: 3rem; /* room for the unit label */
+  }
+  form textarea {
+    resize: vertical;
+    min-height: 5rem;
+  }
+</style>
 {% endblock %}

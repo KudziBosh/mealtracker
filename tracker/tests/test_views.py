@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
 from django.utils import timezone
 
+from tracker import protocol
+from tracker.food_sources import FoodCandidate
 from tracker.models import (
     DailyLog,
     FoodItem,
@@ -324,6 +328,87 @@ def test_summary_shows_close_out_link_when_not_closed(client, user):
     assert b"Day not closed yet" in response.content
 
 
+# ---- Retroactive closeout ----------------------------------------------
+
+
+def test_closeout_for_yesterday_renders_and_saves(client, user, food_item):
+    """A missed day can be closed out within the late window."""
+    yesterday = timezone.localdate() - timedelta(days=1)
+
+    # Render: form pre-fills walking, sees the retroactive banner.
+    render = client.get(f"/closeout/{yesterday.isoformat()}/")
+    assert render.status_code == 200
+    assert render.context["target_date"] == yesterday
+    assert render.context["days_late"] == 1
+    assert render.context["is_today"] is False
+    assert b"day late" in render.content
+    assert b"Closeout \xc2\xb7" in render.content  # title uses · separator
+
+    # Save: closed_at gets stamped and the redirect points at yesterday's summary.
+    save = client.post(
+        f"/closeout/{yesterday.isoformat()}/",
+        {
+            "walked_minutes": "42",
+            "steps": "5500",
+            "hit_protein": "on",
+            "under_calories": "on",
+            "walked_30": "on",
+            "ate_breakfast": "on",
+            "notes": "Caught up next morning.",
+            "weight_kg": "118.90",
+            "weight_notes": "",
+        },
+    )
+    assert save.status_code == 302
+    assert save.url == f"/summary/{yesterday.isoformat()}/"
+    log = DailyLog.objects.get(user=user, date=yesterday)
+    assert log.closed_at is not None
+    assert log.walked_minutes == 42
+    # Weight is upserted against the *target* date, not today.
+    weight = WeightEntry.objects.get(user=user, date=yesterday)
+    assert weight.weight_kg == Decimal("118.90")
+
+
+def test_closeout_rejects_future_dates(client):
+    tomorrow = (timezone.localdate() + timedelta(days=1)).isoformat()
+    assert client.get(f"/closeout/{tomorrow}/").status_code == 404
+
+
+def test_closeout_rejects_dates_outside_late_window(client):
+    too_old = timezone.localdate() - timedelta(days=protocol.CLOSEOUT_LATE_DAYS_MAX + 1)
+    assert client.get(f"/closeout/{too_old.isoformat()}/").status_code == 404
+
+
+def test_closeout_rejects_malformed_date(client):
+    assert client.get("/closeout/not-a-date/").status_code == 404
+
+
+def test_summary_shows_close_out_cta_on_past_unclosed_day_in_window(client):
+    """Viewing yesterday's summary surfaces a working closeout CTA."""
+    yesterday = timezone.localdate() - timedelta(days=1)
+
+    response = client.get(f"/summary/{yesterday.isoformat()}/")
+
+    assert response.status_code == 200
+    assert response.context["summary"]["closeout_window_open"] is True
+    assert response.context["summary"]["days_late"] == 1
+    assert f"/closeout/{yesterday.isoformat()}/".encode() in response.content
+    assert b"window still open" in response.content
+
+
+def test_summary_hides_close_out_cta_outside_window(client):
+    """A day older than the window has no working closeout CTA."""
+    too_old = timezone.localdate() - timedelta(days=protocol.CLOSEOUT_LATE_DAYS_MAX + 3)
+
+    response = client.get(f"/summary/{too_old.isoformat()}/")
+
+    assert response.status_code == 200
+    assert response.context["summary"]["closeout_window_open"] is False
+    # No working close-out link to this date should appear.
+    assert f"/closeout/{too_old.isoformat()}/".encode() not in response.content
+    assert b"Window has expired" in response.content
+
+
 def test_food_create_page_adds_food(client):
     response = client.post(
         "/foods/add/",
@@ -390,3 +475,153 @@ def test_logged_meals_page_updates_and_deletes_rows(client, user, food_item):
 
     assert delete_response.status_code == 302
     assert not MealEntry.objects.filter(pk=meal.id).exists()
+
+
+# ---- External food-source lookups --------------------------------------
+
+
+def _candidate(
+    source: str = "FDC",
+    source_id: str = "171477",
+    name: str = "Chicken, broiler, breast, meat only, cooked, roasted",
+    **overrides,
+) -> FoodCandidate:
+    """Build a fully-populated FoodCandidate for view tests."""
+    defaults = {
+        "source": source,
+        "source_id": source_id,
+        "source_url": f"https://example/{source.lower()}/{source_id}",
+        "name": name,
+        "kcal_per_100g": Decimal("165.00"),
+        "protein_g": Decimal("31.02"),
+        "fat_g": Decimal("3.57"),
+        "carb_g": Decimal("0.00"),
+        "description": "Poultry Products",
+    }
+    defaults.update(overrides)
+    return FoodCandidate(**defaults)
+
+
+def test_food_external_search_renders_results_from_both_sources(client):
+    fdc = _candidate(source="FDC", source_id="171477")
+    off = _candidate(source="OFF", source_id="0028400090000", name="Smooth Peanut Butter")
+
+    with patch("tracker.views.combined_search", return_value=[fdc, off]) as mock_search:
+        response = client.get("/htmx/foods/external-search/?q=chicken")
+
+    mock_search.assert_called_once_with("chicken")
+    assert response.status_code == 200
+    assert b"171477" in response.content
+    assert b"FDC" in response.content
+    assert b"OFF" in response.content
+    assert b"Smooth Peanut Butter" in response.content
+
+
+def test_food_external_search_blank_query_shows_no_results(client):
+    """Mid-typing fires reach here with empty q; render an empty panel, not 400."""
+    with patch("tracker.views.combined_search") as mock_search:
+        response = client.get("/htmx/foods/external-search/?q=")
+
+    mock_search.assert_not_called()
+    assert response.status_code == 200
+    # The empty-state copy doesn't render either (no query, no candidates).
+    assert b"No matches" not in response.content
+
+
+def test_food_external_search_no_matches_renders_friendly_empty_state(client):
+    with patch("tracker.views.combined_search", return_value=[]):
+        response = client.get("/htmx/foods/external-search/?q=kapenta")
+
+    assert response.status_code == 200
+    assert b"No matches" in response.content
+    assert b"Zimbabwean" in response.content  # local-food hint
+
+
+def test_food_add_with_candidate_param_prefills_form(client):
+    fdc = _candidate(source="FDC", source_id="171477")
+
+    with patch("tracker.views.fetch_candidate", return_value=fdc) as mock_fetch:
+        response = client.get("/foods/add/?candidate=FDC:171477")
+
+    mock_fetch.assert_called_once_with("FDC", "171477")
+    assert response.status_code == 200
+    initial = response.context["form"].initial
+    assert initial["name"].startswith("Chicken")
+    assert initial["kcal_per_100g"] == Decimal("165.00")
+    assert initial["source"] == "FDC"
+    assert initial["source_id"] == "171477"
+    # The "Prefilled from FDC" banner appears in the rendered page.
+    assert b"Prefilled from" in response.content
+    assert b"FDC" in response.content
+
+
+def test_food_add_with_unknown_candidate_falls_back_to_blank_form(client):
+    """If the source layer can't resolve the candidate, render the empty form."""
+    with patch("tracker.views.fetch_candidate", return_value=None):
+        response = client.get("/foods/add/?candidate=FDC:does-not-exist")
+
+    assert response.status_code == 200
+    assert response.context["form"].initial == {}
+    assert b"Prefilled from" not in response.content
+
+
+def test_food_add_persists_source_fields_on_save(client):
+    """An imported food saves with the full provenance trio."""
+    response = client.post(
+        "/foods/add/",
+        {
+            "name": "Chicken breast, cooked",
+            "kcal_per_100g": "165.00",
+            "protein_g": "31.02",
+            "fat_g": "3.57",
+            "carb_g": "0.00",
+            "satiety_index": "225",
+            "common_unit": "100g cooked",
+            "default_grams": "150.00",
+            "notes": "Imported from FDC",
+            "source": "FDC",
+            "source_id": "171477",
+            "source_url": "https://fdc.nal.usda.gov/food-details/171477/nutrients",
+        },
+    )
+
+    assert response.status_code == 302
+    food = FoodItem.objects.get(name="Chicken breast, cooked")
+    assert food.source == "FDC"
+    assert food.source_id == "171477"
+    assert food.source_url.endswith("/food-details/171477/nutrients")
+
+
+def test_food_list_shows_source_badges(client):
+    """An imported row shows an FDC/OFF badge; a manual row shows none."""
+    # Filter the response to just these two rows so seeded data doesn't
+    # influence the badge count.
+    FoodItem.objects.create(
+        name="Zzz-test manual kapenta",
+        kcal_per_100g=Decimal("265.00"),
+        protein_g=Decimal("60.00"),
+        fat_g=Decimal("8.00"),
+        carb_g=Decimal("0.00"),
+        common_unit="100g dried",
+    )
+    FoodItem.objects.create(
+        name="Zzz-test FDC chicken",
+        kcal_per_100g=Decimal("165.00"),
+        protein_g=Decimal("31.00"),
+        fat_g=Decimal("3.57"),
+        carb_g=Decimal("0.00"),
+        common_unit="100g cooked",
+        source="FDC",
+        source_id="171477",
+    )
+
+    response = client.get("/foods/?q=Zzz-test")
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Zzz-test manual kapenta" in content
+    assert "Zzz-test FDC chicken" in content
+    # Exactly one FDC badge — only the FDC-imported row renders one.
+    assert content.count(">FDC</span>") == 1
+    # And no OFF badge appears for either row.
+    assert ">OFF</span>" not in content

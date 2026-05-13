@@ -3,75 +3,123 @@
 {% block title %}{% if recipe %}Edit recipe{% else %}Add recipe{% endif %} · Mealtracker{% endblock %}
 
 {% block content %}
-<section class="mb-6">
-    <a href="{% url 'tracker:recipes' %}" class="text-sm text-slate-500 hover:text-slate-900">← Recipes</a>
-    <h1 class="text-2xl font-semibold tracking-tight mt-2">
-        {% if recipe %}Edit {{ recipe.name }}{% else %}Add recipe{% endif %}
-    </h1>
-    <p class="text-sm text-slate-500 mt-1">
-        Add each ingredient as a food plus cooked/served grams. These rows become editable meal entries when logged.
-    </p>
-</section>
+<div class="space-y-stack-md pb-stack-lg">
 
-<form method="post" class="space-y-6">
+  <header>
+    <a href="{% url 'tracker:recipes' %}"
+       class="inline-flex items-center gap-1 font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors mb-3">
+      <span class="material-symbols-outlined" style="font-size:16px">arrow_back</span>
+      Recipes
+    </a>
+    <h2 class="font-display text-display text-primary">
+      {% if recipe %}Edit {{ recipe.name }}{% else %}Add recipe{% endif %}
+    </h2>
+    <p class="font-body-lg text-body-lg text-on-surface-variant mt-1">
+      Add each ingredient as a food plus cooked/served grams. These rows become editable meal entries when logged.
+    </p>
+  </header>
+
+  <form method="post" class="space-y-stack-md">
     {% csrf_token %}
 
-    <section class="bg-white rounded-lg border border-slate-200 p-4 space-y-4">
-        <h2 class="text-lg font-semibold">Recipe details</h2>
-        {{ form.non_field_errors }}
-        <div class="grid gap-4 sm:grid-cols-[1fr_12rem]">
-            <div>
-                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Name</label>
-                {{ form.name }}
-                {{ form.name.errors }}
-            </div>
-            <div>
-                <label for="{{ form.category.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Category</label>
-                {{ form.category }}
-                {{ form.category.errors }}
-            </div>
+    {# Recipe details #}
+    <section class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-soft p-stack-md space-y-4">
+      <h3 class="font-display text-headline-md text-primary">Recipe details</h3>
+      {{ form.non_field_errors }}
+      <div class="grid gap-4 sm:grid-cols-[1fr_12rem]">
+        <div>
+          <label for="{{ form.name.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-1">Name</label>
+          {{ form.name }}
+          {{ form.name.errors }}
         </div>
         <div>
-            <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Notes</label>
-            {{ form.notes }}
-            {{ form.notes.errors }}
+          <label for="{{ form.category.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-1">Category</label>
+          {{ form.category }}
+          {{ form.category.errors }}
         </div>
+      </div>
+      <div>
+        <label for="{{ form.notes.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-1">Notes</label>
+        {{ form.notes }}
+        {{ form.notes.errors }}
+      </div>
     </section>
 
-    <section class="bg-white rounded-lg border border-slate-200 p-4">
-        <h2 class="text-lg font-semibold mb-4">Ingredients</h2>
-        {{ formset.management_form }}
-        {{ formset.non_form_errors }}
+    {# Ingredients #}
+    <section class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-soft p-stack-md">
+      <h3 class="font-display text-headline-md text-primary mb-4">Ingredients</h3>
+      {{ formset.management_form }}
+      {{ formset.non_form_errors }}
 
-        <div class="space-y-3">
-            {% for item_form in formset %}
-            <div class="grid gap-3 sm:grid-cols-[1fr_8rem_5rem] sm:items-end border border-slate-100 rounded-md p-3">
-                {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
-                <div>
-                    <label for="{{ item_form.food.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Food</label>
-                    {{ item_form.food }}
-                    {{ item_form.food.errors }}
-                </div>
-                <div>
-                    <label for="{{ item_form.grams.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Grams</label>
-                    {{ item_form.grams }}
-                    {{ item_form.grams.errors }}
-                </div>
-                {% if item_form.DELETE %}
-                <label class="text-sm text-slate-600 pb-2">
-                    {{ item_form.DELETE }} Delete
-                </label>
-                {% endif %}
+      <div class="space-y-3">
+        {% for item_form in formset %}
+          <div class="bg-surface-container rounded-lg p-4 border border-outline-variant
+                      grid gap-3 sm:grid-cols-[1fr_8rem_auto] sm:items-end">
+            {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+            <div>
+              <label for="{{ item_form.food.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-1">Food</label>
+              {{ item_form.food }}
+              {{ item_form.food.errors }}
             </div>
-            {% endfor %}
-        </div>
+            <div>
+              <label for="{{ item_form.grams.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-1">Grams</label>
+              {{ item_form.grams }}
+              {{ item_form.grams.errors }}
+            </div>
+            {% if item_form.DELETE %}
+              <label class="flex items-center gap-2 font-label-md text-label-md text-error cursor-pointer pb-2 hover:text-on-error-container">
+                {{ item_form.DELETE }}
+                <span class="material-symbols-outlined" style="font-size:18px">delete</span>
+                Delete
+              </label>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
     </section>
 
-    <div class="flex justify-end gap-3">
-        <a href="{% url 'tracker:recipes' %}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</a>
-        <button type="submit" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-            Save recipe
-        </button>
+    <div class="flex flex-col sm:flex-row justify-end gap-3">
+      <a href="{% url 'tracker:recipes' %}"
+         class="rounded-lg border border-outline-variant px-6 py-3 font-label-md text-label-md text-on-surface-variant
+                hover:bg-surface-container-low transition-colors text-center">
+        Cancel
+      </a>
+      <button type="submit"
+              class="bg-primary text-on-primary rounded-lg px-8 py-3 font-label-md text-label-md
+                     hover:bg-primary-container hover:text-on-primary-container transition-colors
+                     flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined fill" style="font-size:18px">save</span>
+        Save recipe
+      </button>
     </div>
-</form>
+  </form>
+
+</div>
+
+<style>
+  /* Style Django-rendered form inputs on the recipe form */
+  form input[type="text"],
+  form input[type="number"],
+  form select,
+  form textarea {
+    width: 100%;
+    background-color: #f0eee9;
+    border: 1px solid #c2c8c0;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #1b1c19;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  form input[type="text"]:focus,
+  form input[type="number"]:focus,
+  form select:focus,
+  form textarea:focus {
+    outline: none;
+    border-color: #163422;
+    box-shadow: 0 0 0 2px rgba(22,52,34,0.2);
+  }
+  form textarea { resize: vertical; min-height: 4rem; }
+</style>
 {% endblock %}

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Daily Closeout - Nourish &amp; Flow</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-variant": "#e4e2dd",
+                      "on-error": "#ffffff",
+                      "secondary-container": "#ff9875",
+                      "outline-variant": "#c2c8c0",
+                      "inverse-primary": "#adcfb4",
+                      "on-background": "#1b1c19",
+                      "secondary-fixed-dim": "#ffb59c",
+                      "tertiary": "#2b3112",
+                      "inverse-surface": "#30312e",
+                      "on-surface-variant": "#424843",
+                      "surface-bright": "#fbf9f4",
+                      "inverse-on-surface": "#f2f1ec",
+                      "primary": "#163422",
+                      "error": "#ba1a1a",
+                      "on-primary-container": "#99baa1",
+                      "on-primary-fixed": "#022110",
+                      "tertiary-fixed": "#e0e6ba",
+                      "primary-fixed": "#c8ebd0",
+                      "tertiary-fixed-dim": "#c4ca9f",
+                      "primary-container": "#2d4b37",
+                      "on-tertiary-fixed": "#191e03",
+                      "on-secondary": "#ffffff",
+                      "surface-tint": "#466550",
+                      "secondary-fixed": "#ffdbd0",
+                      "on-error-container": "#93000a",
+                      "surface-container-highest": "#e4e2dd",
+                      "on-secondary-container": "#772f14",
+                      "primary-fixed-dim": "#adcfb4",
+                      "surface": "#fbf9f4",
+                      "on-tertiary": "#ffffff",
+                      "on-tertiary-container": "#afb58c",
+                      "error-container": "#ffdad6",
+                      "on-secondary-fixed": "#390c00",
+                      "on-primary-fixed-variant": "#2f4d39",
+                      "on-primary": "#ffffff",
+                      "surface-container-high": "#eae8e3",
+                      "tertiary-container": "#424727",
+                      "outline": "#727972",
+                      "on-tertiary-fixed-variant": "#444a29",
+                      "on-surface": "#1b1c19",
+                      "secondary": "#97472a",
+                      "surface-container": "#f0eee9",
+                      "on-secondary-fixed-variant": "#793015",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-dim": "#dbdad5",
+                      "surface-container-low": "#f5f3ee",
+                      "background": "#fbf9f4"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "stack-lg": "48px",
+                      "unit": "8px",
+                      "stack-md": "24px",
+                      "gutter": "24px",
+                      "stack-sm": "12px",
+                      "margin-mobile": "16px",
+                      "container-max": "1024px"
+              },
+              "fontFamily": {
+                      "display": [
+                              "Newsreader"
+                      ],
+                      "label-md": [
+                              "Manrope"
+                      ],
+                      "body-md": [
+                              "Manrope"
+                      ],
+                      "headline-lg": [
+                              "Newsreader"
+                      ],
+                      "headline-lg-mobile": [
+                              "Newsreader"
+                      ],
+                      "body-lg": [
+                              "Manrope"
+                      ],
+                      "headline-md": [
+                              "Newsreader"
+                      ]
+              },
+              "fontSize": {
+                      "display": [
+                              "42px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.3",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "28px",
+                              {
+                                      "lineHeight": "1.3",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+      </script>
+<style>
+        /* Custom styles for checkbox to match minimal aesthetic */
+        .custom-checkbox {
+            appearance: none;
+            background-color: transparent;
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 1.5em;
+            height: 1.5em;
+            border: 1px solid var(--tw-colors-outline-variant, #c2c8c0);
+            border-radius: 0.25rem;
+            display: grid;
+            place-content: center;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+
+        .custom-checkbox::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em var(--tw-colors-primary, #163422);
+            background-color: var(--tw-colors-primary, #163422);
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+
+        .custom-checkbox:checked::before {
+            transform: scale(1);
+        }
+
+        .custom-checkbox:checked {
+            border-color: var(--tw-colors-primary, #163422);
+            background-color: var(--tw-colors-primary-fixed, #c8ebd0);
+        }
+      </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen font-body-md text-body-md pb-stack-lg antialiased">
+<!-- TopAppBar Shared Component -->
+<header class="bg-surface docked full-width top-0 border-b border-outline-variant sticky z-40">
+<div class="flex justify-between items-center w-full px-margin-mobile h-16 max-w-container-max mx-auto">
+<div class="flex items-center gap-unit cursor-pointer">
+<div class="w-8 h-8 rounded-full bg-surface-container-high overflow-hidden border border-outline-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-label-md">person</span>
+</div>
+</div>
+<h1 class="font-display text-headline-md font-medium text-primary">Nourish &amp; Flow</h1>
+<button class="flex items-center justify-center text-primary p-2 hover:bg-surface-container-low transition-colors rounded-full active:scale-95 duration-150 ease-in-out">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<!-- Note: BottomNavBar is suppressed based on the rule: Linear/Transactional logic for an 'End of Day Closeout' task screen. -->
+<main class="max-w-container-max mx-auto px-margin-mobile pt-stack-md pb-stack-lg flex flex-col gap-stack-md">
+<!-- Page Header -->
+<header class="mb-unit">
+<h2 class="font-display text-display text-primary">Daily Closeout</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2 max-w-xl">Review your logged activities and confirm your habits for the day to maintain your streak.</p>
+</header>
+<!-- Bento Grid Layout for Form Sections -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Section 1: Habits (Spans full width on mobile, 8 cols on desktop for emphasis) -->
+<section class="md:col-span-8 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-[0px_4px_20px_rgba(0,0,0,0.04)] p-stack-md flex flex-col gap-stack-sm hover:shadow-[0px_8px_24px_rgba(0,0,0,0.06)] transition-shadow">
+<div>
+<h3 class="font-display text-headline-lg text-primary mb-1">Habits</h3>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Suggestions come from today's logged meals. Tick or untick to match what actually happened.</p>
+</div>
+<div class="flex flex-col gap-3 mt-2">
+<label class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-container-low cursor-pointer transition-colors border border-transparent hover:border-outline-variant">
+<input checked="" class="custom-checkbox" type="checkbox"/>
+<span class="font-body-md text-body-md text-on-background select-none">Hit protein target (190 g)</span>
+</label>
+<label class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-container-low cursor-pointer transition-colors border border-transparent hover:border-outline-variant">
+<input checked="" class="custom-checkbox" type="checkbox"/>
+<span class="font-body-md text-body-md text-on-background select-none">Stayed within calories (2000)</span>
+</label>
+<label class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-container-low cursor-pointer transition-colors border border-transparent hover:border-outline-variant">
+<input class="custom-checkbox" type="checkbox"/>
+<span class="font-body-md text-body-md text-on-background select-none">Walked 30+ minutes</span>
+</label>
+<label class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-container-low cursor-pointer transition-colors border border-transparent hover:border-outline-variant">
+<input checked="" class="custom-checkbox" type="checkbox"/>
+<span class="font-body-md text-body-md text-on-background select-none">Ate breakfast</span>
+</label>
+<label class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-container-low cursor-pointer transition-colors border border-transparent hover:border-outline-variant">
+<input checked="" class="custom-checkbox" type="checkbox"/>
+<span class="font-body-md text-body-md text-on-background select-none">No sugary drinks / alcohol</span>
+</label>
+</div>
+</section>
+<!-- Side Column for secondary metrics -->
+<div class="md:col-span-4 flex flex-col gap-gutter">
+<!-- Section 2: Walking -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-[0px_4px_20px_rgba(0,0,0,0.04)] p-stack-md flex flex-col gap-unit hover:shadow-[0px_8px_24px_rgba(0,0,0,0.06)] transition-shadow">
+<div class="flex items-center justify-between mb-2">
+<h3 class="font-display text-headline-md text-primary">Walking</h3>
+<span class="material-symbols-outlined text-tertiary-fixed-dim" style="font-variation-settings: 'FILL' 1;">directions_walk</span>
+</div>
+<div class="flex flex-col gap-1">
+<label class="sr-only" for="minutes-walked">Minutes walked</label>
+<div class="relative">
+<input class="w-full bg-surface-container rounded-lg border border-outline-variant px-4 py-3 font-body-lg text-body-lg text-on-background focus:outline-none focus:border-primary focus:ring-0 transition-colors" id="minutes-walked" min="0" type="number" value="0"/>
+<div class="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+<span class="text-on-surface-variant font-label-md text-label-md">min</span>
+</div>
+</div>
+<p class="font-label-md text-label-md text-on-surface-variant mt-2 opacity-80">30+ min is the minimum habit threshold. Steps optional.</p>
+</div>
+</section>
+<!-- Section 3: Weight -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-[0px_4px_20px_rgba(0,0,0,0.04)] p-stack-md flex flex-col gap-unit hover:shadow-[0px_8px_24px_rgba(0,0,0,0.06)] transition-shadow">
+<div class="flex items-center justify-between mb-1">
+<h3 class="font-display text-headline-md text-primary">Weight</h3>
+<span class="material-symbols-outlined text-secondary-fixed-dim" style="font-variation-settings: 'FILL' 1;">scale</span>
+</div>
+<p class="font-label-md text-label-md text-secondary uppercase tracking-wider mb-3">Optional today. Tuesday is the protocol weigh-in day.</p>
+<div class="flex flex-col gap-3">
+<label class="sr-only" for="weight-kg">Weight kg</label>
+<div class="relative">
+<input class="w-full bg-surface-container rounded-lg border border-outline-variant px-4 py-3 font-body-lg text-body-lg text-on-background placeholder:text-outline focus:outline-none focus:border-primary focus:ring-0 transition-colors" id="weight-kg" placeholder="e.g. 119.40" step="0.01" type="number"/>
+<div class="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+<span class="text-on-surface-variant font-label-md text-label-md">kg</span>
+</div>
+</div>
+<label class="sr-only" for="weight-note">Weight note optional</label>
+<input class="w-full bg-surface-container rounded-lg border border-outline-variant px-4 py-3 font-body-md text-body-md text-on-background placeholder:text-outline focus:outline-none focus:border-primary focus:ring-0 transition-colors" id="weight-note" placeholder="Weight note optional..." type="text"/>
+</div>
+</section>
+</div>
+<!-- Section 4: Closeout notes (Full width) -->
+<section class="md:col-span-12 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-[0px_4px_20px_rgba(0,0,0,0.04)] p-stack-md flex flex-col gap-unit hover:shadow-[0px_8px_24px_rgba(0,0,0,0.06)] transition-shadow">
+<div class="flex items-center justify-between mb-2">
+<h3 class="font-display text-headline-md text-primary">Closeout notes</h3>
+<span class="material-symbols-outlined text-outline">edit_note</span>
+</div>
+<label class="sr-only" for="closeout-notes">Closeout notes</label>
+<textarea class="w-full bg-surface-container rounded-lg border border-outline-variant px-4 py-3 font-body-md text-body-md text-on-background placeholder:text-outline focus:outline-none focus:border-primary focus:ring-0 transition-colors resize-y" id="closeout-notes" placeholder="Energy, hunger, cravings, misses, or what to adjust tomorrow." rows="4"></textarea>
+</section>
+</div>
+<!-- Primary Action -->
+<div class="mt-stack-sm pt-stack-sm border-t border-surface-dim flex justify-end">
+<button class="w-full md:w-auto bg-primary text-on-primary font-label-md text-label-md px-8 py-4 rounded-lg hover:bg-primary-container hover:text-on-primary-container shadow-sm hover:shadow-md transition-all active:scale-95 duration-150 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">done_all</span>
+                Complete Day
+            </button>
+</div>
+</main>
+</body></html>

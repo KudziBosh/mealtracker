@@ -89,6 +89,16 @@ def protocol_week(first_weight_date: date | None, on_date: date) -> int:
 # Monday=0 ... Sunday=6 — matches Python's datetime.weekday()
 WEIGH_IN_DAY = 1  # Tuesday
 
+
+# ---- Closeout window ------------------------------------------------------
+
+# How far back the user can retroactively close out a missed day. The protocol
+# is built around a weekly review rhythm (Sunday summary), so any day in the
+# current rolling week is fair game. Beyond that, "closing out" 10+ days late
+# is rewriting history rather than capturing the day, and weakens the
+# closeout streak metric. Future dates are always rejected.
+CLOSEOUT_LATE_DAYS_MAX = 7
+
 # Default Telegram ping times (the model overrides per-instance, but these are
 # the protocol-aligned defaults for new TelegramSettings rows).
 DEFAULT_MORNING_PING = time(7, 0)

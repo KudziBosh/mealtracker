@@ -17,6 +17,7 @@ from django.utils.dateparse import parse_date
 
 from . import protocol
 from .closeout import closeout_habit_rows, closeout_initial, closeout_suggestions
+from .food_sources import combined_search, fetch_candidate
 from .models import DailyLog, FoodItem, MealEntry, MealTemplate, MealTemplateItem, WeightEntry
 from .summary import build_end_of_day_summary, build_progress_summary, meal_totals
 
@@ -113,7 +114,15 @@ class LogTemplateForm(forms.Form):
 
 
 class FoodItemForm(forms.ModelForm):
-    """Create or edit foods without going through Django admin."""
+    """Create or edit foods without going through Django admin.
+
+    Carries the three provenance fields (``source``, ``source_id``,
+    ``source_url``) as hidden inputs so the assisted-import flow can prefill
+    them from FDC / Open Food Facts without us having to thread a second
+    form through the templates. The manual /foods/add/ flow leaves them
+    blank and the model default (``SOURCE_MANUAL``) takes over via
+    ``clean_source`` below.
+    """
 
     class Meta:
         model = FoodItem
@@ -127,10 +136,29 @@ class FoodItemForm(forms.ModelForm):
             "common_unit",
             "default_grams",
             "notes",
+            "source",
+            "source_id",
+            "source_url",
         ]
         widgets = {
             "notes": forms.Textarea(attrs={"rows": 3}),
+            "source": forms.HiddenInput(),
+            "source_id": forms.HiddenInput(),
+            "source_url": forms.HiddenInput(),
         }
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        # Provenance fields are optional from the form's perspective — the
+        # manual /foods/add/ path submits them blank and we want the model
+        # default (SOURCE_MANUAL) to take over.
+        self.fields["source"].required = False
+        self.fields["source_id"].required = False
+        self.fields["source_url"].required = False
+
+    def clean_source(self) -> str:
+        """Default an empty submitted ``source`` to ``SOURCE_MANUAL``."""
+        return self.cleaned_data.get("source") or FoodItem.SOURCE_MANUAL
 
 
 class MealTemplateForm(forms.ModelForm):
@@ -583,19 +611,42 @@ def progress_summary(request: HttpRequest, on_date: str | None = None) -> HttpRe
 
 
 @login_required(login_url="/admin/login/")
-def closeout(request: HttpRequest) -> HttpResponse:
-    """Guided evening closeout: habits, walking, notes, and optional weight."""
+def closeout(request: HttpRequest, on_date: str | None = None) -> HttpResponse:
+    """Guided closeout for ``on_date`` (default: today).
+
+    Supports retroactive closeouts within ``protocol.CLOSEOUT_LATE_DAYS_MAX``
+    so a missed evening doesn't break the streak. Future dates are rejected
+    (can't close out tomorrow), and so are dates older than the window —
+    keeping the closeout streak metric an honest signal rather than a
+    revisable one.
+    """
     today = timezone.localdate()
-    daily_log = DailyLog.objects.filter(user=request.user, date=today).first()
+    if on_date is None:
+        target = today
+    else:
+        parsed = parse_date(on_date)
+        if parsed is None:
+            raise Http404("Bad date in URL — use YYYY-MM-DD.")
+        target = parsed
+
+    if target > today:
+        raise Http404("Can't close out a future date.")
+    days_late = (today - target).days
+    if days_late > protocol.CLOSEOUT_LATE_DAYS_MAX:
+        raise Http404(
+            f"That day is outside the {protocol.CLOSEOUT_LATE_DAYS_MAX}-day closeout window."
+        )
+
+    daily_log = DailyLog.objects.filter(user=request.user, date=target).first()
     meals = list(
-        MealEntry.objects.filter(user=request.user, eaten_at__date=today).select_related("food")
+        MealEntry.objects.filter(user=request.user, eaten_at__date=target).select_related("food")
     )
     totals = meal_totals(meals)
     suggestions = closeout_suggestions(daily_log=daily_log, totals=totals)
-    weight_entry = WeightEntry.objects.filter(user=request.user, date=today).first()
+    weight_entry = WeightEntry.objects.filter(user=request.user, date=target).first()
 
     if request.method == "POST":
-        daily_log, _created = DailyLog.objects.get_or_create(user=request.user, date=today)
+        daily_log, _created = DailyLog.objects.get_or_create(user=request.user, date=target)
         form = CloseoutForm(request.POST, instance=daily_log)
         weight_form = CloseoutWeightForm(request.POST)
         if form.is_valid() and weight_form.is_valid():
@@ -608,15 +659,17 @@ def closeout(request: HttpRequest) -> HttpResponse:
 
             weight_kg = weight_form.cleaned_data["weight_kg"]
             if weight_kg is not None:
+                # Upsert against the *target* date — a Tuesday weigh-in
+                # closed out on Wednesday morning still belongs to Tuesday.
                 WeightEntry.objects.update_or_create(
                     user=request.user,
-                    date=today,
+                    date=target,
                     defaults={
                         "weight_kg": weight_kg,
                         "notes": weight_form.cleaned_data["weight_notes"],
                     },
                 )
-            return redirect("tracker:summary")
+            return redirect("tracker:summary-on", on_date=target.isoformat())
     else:
         form = CloseoutForm(
             instance=daily_log,
@@ -634,6 +687,9 @@ def closeout(request: HttpRequest) -> HttpResponse:
         "tracker/closeout.html",
         {
             "today": today,
+            "target_date": target,
+            "is_today": target == today,
+            "days_late": days_late,
             "form": form,
             "weight_form": weight_form,
             "daily_log": daily_log,
@@ -645,7 +701,7 @@ def closeout(request: HttpRequest) -> HttpResponse:
                 has_saved_log=daily_log is not None,
             ),
             "meal_totals": totals,
-            "weigh_in_due": today.weekday() == protocol.WEIGH_IN_DAY,
+            "weigh_in_due": target.weekday() == protocol.WEIGH_IN_DAY,
             "protein_target_g": protocol.DAILY_PROTEIN_G,
             "kcal_target": protocol.DAILY_KCAL_TARGET,
             "kcal_floor": protocol.DAILY_KCAL_FLOOR,
@@ -674,13 +730,66 @@ def food_list(request: HttpRequest) -> HttpResponse:
 
 @login_required(login_url="/admin/login/")
 def food_create(request: HttpRequest) -> HttpResponse:
-    """Add one FoodItem from the browser."""
-    form = FoodItemForm(request.POST or None)
+    """Add one FoodItem from the browser.
+
+    Supports an assisted-import flow via a ``?candidate=<SOURCE>:<id>`` query
+    param: when present, the form's initial values are prefilled from the
+    upstream FDC / Open Food Facts row. The owner still reviews and edits
+    every field before saving — the API just removes the macro-typing step.
+    """
+    initial: dict[str, object] = {}
+    candidate = None
+    candidate_param = request.GET.get("candidate", "").strip()
+    if candidate_param and ":" in candidate_param:
+        source, _, source_id = candidate_param.partition(":")
+        candidate = fetch_candidate(source, source_id)
+        if candidate is not None:
+            initial = {
+                "name": candidate.name,
+                "kcal_per_100g": candidate.kcal_per_100g,
+                "protein_g": candidate.protein_g,
+                "fat_g": candidate.fat_g,
+                "carb_g": candidate.carb_g,
+                # Holt satiety + default_grams are protocol-specific; the
+                # owner fills them in by hand even on an imported row.
+                "source": candidate.source,
+                "source_id": candidate.source_id,
+                "source_url": candidate.source_url,
+                "notes": (
+                    f"Imported from {candidate.source} · {candidate.description}".strip(" ·")
+                    if candidate.description
+                    else f"Imported from {candidate.source}"
+                ),
+            }
+
+    form = FoodItemForm(request.POST or None, initial=initial)
     if request.method == "POST" and form.is_valid():
         food = form.save()
         return redirect("tracker:food-edit", food_id=food.id)
 
-    return render(request, "tracker/foods/form.html", {"form": form, "food": None})
+    return render(
+        request,
+        "tracker/foods/form.html",
+        {"form": form, "food": None, "candidate": candidate},
+    )
+
+
+@login_required(login_url="/admin/login/")
+def food_external_search(request: HttpRequest) -> HttpResponse:
+    """HTMX search endpoint hitting USDA FDC + Open Food Facts.
+
+    Returns a small results panel rendered by ``food_external_results.html``.
+    Empty query returns an empty panel with a prompt rather than 400-ing —
+    the search input fires on every debounced keystroke and an empty fire
+    is normal mid-typing.
+    """
+    query = request.GET.get("q", "").strip()
+    candidates = combined_search(query) if query else []
+    return render(
+        request,
+        "tracker/foods/external_results.html",
+        {"query": query, "candidates": candidates},
+    )
 
 
 @login_required(login_url="/admin/login/")

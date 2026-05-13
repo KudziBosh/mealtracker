@@ -1,38 +1,58 @@
-<section id="habits-panel" class="mb-8">
-    <h2 class="text-lg font-semibold mb-3">Today's habits</h2>
-    <div class="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100">
-        {% for row in habit_rows %}
-        <form
-            method="post"
-            action="{% url 'tracker:htmx-toggle-habit' row.field %}"
-            hx-post="{% url 'tracker:htmx-toggle-habit' row.field %}"
-            hx-target="#habits-panel"
-            hx-swap="outerHTML"
-        >
-            {% csrf_token %}
-            <button
-                type="submit"
-                aria-pressed="{% if row.done %}true{% else %}false{% endif %}"
-                class="w-full px-4 py-3 flex items-center gap-3 text-left hover:bg-slate-50
-                       focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset"
-            >
-                <span aria-hidden="true"
-                      class="inline-flex h-5 w-5 items-center justify-center rounded border {% if row.done %}bg-emerald-500 border-emerald-500 text-white{% else %}border-slate-300{% endif %}">
-                    {% if row.done %}✓{% endif %}
-                </span>
-                <span class="{% if row.done %}text-slate-900{% else %}text-slate-600{% endif %}">{{ row.label }}</span>
-            </button>
-        </form>
-        {% endfor %}
-    </div>
+<section id="habits-panel" class="space-y-stack-md">
+
+  <div class="flex items-center justify-between">
+    <h3 class="font-display text-headline-lg-mobile text-primary">Daily Habits</h3>
     {% if todays_log %}
-    <p class="text-xs text-slate-500 mt-2">
-        Walked {{ todays_log.walked_minutes }} min{% if todays_log.steps %} · {{ todays_log.steps }} steps{% endif %}
-        · {{ todays_log.habits_completed }}/{{ todays_log.habits_total }} habits done
-    </p>
-    {% else %}
-    <p class="text-xs text-slate-500 mt-2">
-        Tap a habit to create today's log.
-    </p>
+      <span class="font-label-md text-label-md text-on-surface-variant">
+        {{ todays_log.habits_completed }}/{{ todays_log.habits_total }} done
+      </span>
     {% endif %}
+  </div>
+
+  {# Habit chips — each is an HTMX form that swaps the whole panel on toggle #}
+  <div class="flex flex-wrap gap-3">
+    {% for row in habit_rows %}
+      <form
+          method="post"
+          action="{% url 'tracker:htmx-toggle-habit' row.field %}"
+          hx-post="{% url 'tracker:htmx-toggle-habit' row.field %}"
+          hx-target="#habits-panel"
+          hx-swap="outerHTML"
+      >
+        {% csrf_token %}
+        <button
+            type="submit"
+            aria-pressed="{% if row.done %}true{% else %}false{% endif %}"
+            class="flex items-center gap-2 px-4 py-2 rounded-full font-label-md text-label-md
+                   transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
+                   {% if row.done %}
+                     bg-primary-container text-on-primary-container hover:opacity-90
+                   {% else %}
+                     bg-surface-container-low border border-outline-variant text-on-surface-variant hover:bg-surface-container-high
+                   {% endif %}"
+        >
+          {% if row.done %}
+            <span class="material-symbols-outlined fill" style="font-size:18px">check_circle</span>
+          {% else %}
+            <span class="material-symbols-outlined" style="font-size:18px">radio_button_unchecked</span>
+          {% endif %}
+          {{ row.label }}
+        </button>
+      </form>
+    {% endfor %}
+  </div>
+
+  {# Summary line below chips #}
+  {% if todays_log %}
+    <p class="font-body-md text-body-md text-on-surface-variant">
+      <span class="material-symbols-outlined" style="font-size:16px">directions_walk</span>
+      {{ todays_log.walked_minutes }} min walked
+      {% if todays_log.steps %} · {{ todays_log.steps }} steps{% endif %}
+    </p>
+  {% else %}
+    <p class="font-body-md text-body-md text-on-surface-variant">
+      Tap a habit to start tracking today.
+    </p>
+  {% endif %}
+
 </section>

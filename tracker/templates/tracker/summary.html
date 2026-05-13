@@ -3,392 +3,405 @@
 {% block title %}Summary · {{ summary.date|date:"j M Y" }} · Mealtracker{% endblock %}
 
 {% block content %}
-{# ---- Header + date navigation -------------------------------------- #}
-<section class="mb-6">
-    <div class="flex items-center justify-between">
+<div class="space-y-stack-md pb-stack-lg">
+
+  {# ── Page header + date navigation ─────────────────────────────────────────── #}
+  <section>
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h2 class="font-display text-display text-primary">Daily Summary</h2>
+        <p class="font-body-lg text-body-lg text-on-surface-variant mt-1">
+          {{ summary.date|date:"l, j F Y" }}
+          {% if summary.days_in_plan %}
+            · Day {{ summary.days_in_plan }} · Week {{ summary.protocol_week }}
+          {% else %}
+            · Week {{ summary.protocol_week }}
+          {% endif %}
+        </p>
+      </div>
+      <nav class="flex gap-2 shrink-0 mt-1" aria-label="Date navigation">
+        <a href="{% url 'tracker:summary-on' prev_date|date:'Y-m-d' %}"
+           class="rounded-full border border-outline-variant bg-surface-container-low px-3 py-2
+                  font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high
+                  flex items-center gap-1 transition-colors">
+          <span class="material-symbols-outlined" style="font-size:16px">chevron_left</span>
+          {{ prev_date|date:"j M" }}
+        </a>
+        {% if not is_today %}
+          <a href="{% url 'tracker:summary' %}"
+             class="rounded-full border border-outline-variant bg-surface-container-low px-3 py-2
+                    font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high transition-colors">
+            Today
+          </a>
+        {% endif %}
+        {% if next_date %}
+          <a href="{% url 'tracker:summary-on' next_date|date:'Y-m-d' %}"
+             class="rounded-full border border-outline-variant bg-surface-container-low px-3 py-2
+                    font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high
+                    flex items-center gap-1 transition-colors">
+            {{ next_date|date:"j M" }}
+            <span class="material-symbols-outlined" style="font-size:16px">chevron_right</span>
+          </a>
+        {% endif %}
+      </nav>
+    </div>
+  </section>
+
+  {# ── Verdict banner + closeout state ──────────────────────────────────────── #}
+  <section>
+    <div class="rounded-xl p-5 border
+        {% if summary.verdict_level == 'hit' %}bg-primary-fixed border-primary-fixed-dim{% elif summary.verdict_level == 'miss' %}bg-error-container border-on-error-container{% else %}bg-tertiary-fixed border-tertiary-fixed-dim{% endif %}">
+      <div class="flex items-start gap-3">
+        {% if summary.verdict_level == 'hit' %}
+          <span class="material-symbols-outlined fill text-primary" style="font-size:24px">check_circle</span>
+        {% elif summary.verdict_level == 'miss' %}
+          <span class="material-symbols-outlined fill text-error" style="font-size:24px">cancel</span>
+        {% else %}
+          <span class="material-symbols-outlined fill text-tertiary" style="font-size:24px">pending</span>
+        {% endif %}
         <div>
-            <h1 class="text-2xl font-semibold tracking-tight">
-                Daily summary
-            </h1>
-            <p class="text-sm text-slate-500 mt-1">
-                {{ summary.date|date:"l, j F Y" }}
-                {% if summary.days_in_plan %}
-                    · Day {{ summary.days_in_plan }} · Week {{ summary.protocol_week }} of plan
-                {% else %}
-                    · Week {{ summary.protocol_week }}
-                {% endif %}
-            </p>
+          <span class="block font-label-md text-label-md uppercase tracking-widest
+              {% if summary.verdict_level == 'hit' %}text-primary{% elif summary.verdict_level == 'miss' %}text-error{% else %}text-tertiary{% endif %}">
+            {% if summary.on_track %}On track{% elif summary.verdict_level == 'miss' %}Needs attention{% else %}Mostly there{% endif %}
+          </span>
+          <span class="block font-display text-headline-md text-on-background mt-1">{{ summary.verdict }}</span>
         </div>
-        <nav class="flex gap-2 text-sm">
-            <a href="{% url 'tracker:summary-on' prev_date|date:'Y-m-d' %}"
-               class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-100">
-                ← {{ prev_date|date:"j M" }}
-            </a>
-            {% if not is_today %}
-                <a href="{% url 'tracker:summary' %}"
-                   class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-100">
-                    Today
-                </a>
-            {% endif %}
-            {% if next_date %}
-                <a href="{% url 'tracker:summary-on' next_date|date:'Y-m-d' %}"
-                   class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-100">
-                    {{ next_date|date:"j M" }} →
-                </a>
-            {% endif %}
-        </nav>
+      </div>
     </div>
-</section>
 
-{# ---- Verdict banner ------------------------------------------------- #}
-<section class="mb-6">
-    <div class="rounded-lg p-4 border
-        {% if summary.verdict_level == 'hit' %}bg-emerald-50 border-emerald-200{% elif summary.verdict_level == 'miss' %}bg-red-50 border-red-200{% else %}bg-amber-50 border-amber-200{% endif %}">
-        <div class="flex items-start gap-3">
-            <span class="text-2xl leading-none mt-0.5">
-                {% if summary.verdict_level == 'hit' %}✓{% elif summary.verdict_level == 'miss' %}✕{% else %}!{% endif %}
-            </span>
-            <div>
-                <div class="text-xs uppercase tracking-wide
-                    {% if summary.verdict_level == 'hit' %}text-emerald-700{% elif summary.verdict_level == 'miss' %}text-red-700{% else %}text-amber-700{% endif %}">
-                    {% if summary.on_track %}On track{% elif summary.verdict_level == 'miss' %}Needs attention{% else %}Mostly there{% endif %}
-                </div>
-                <div class="mt-1 text-base font-medium text-slate-900">
-                    {{ summary.verdict }}
-                </div>
-            </div>
-        </div>
+    <div class="mt-3 flex items-center justify-between gap-3">
+      <div class="font-body-md text-body-md text-on-surface-variant">
+        {% if summary.closed_at %}
+          <span class="inline-flex items-center gap-1.5 text-primary">
+            <span class="material-symbols-outlined fill" style="font-size:16px">check_circle</span>
+            Closed out {% if is_today %}at {{ summary.closed_at|time:"H:i" }}{% else %}on {{ summary.closed_at|date:"j M, H:i" }}{% endif %}
+          </span>
+        {% elif is_today %}
+          <span class="text-on-surface-variant">Day not closed yet.</span>
+        {% elif summary.closeout_window_open %}
+          <span class="text-secondary">
+            Not closed — {{ summary.days_late }} day{{ summary.days_late|pluralize }} late, window still open.
+          </span>
+        {% else %}
+          <span class="text-on-surface-variant">Not closed. Window has expired.</span>
+        {% endif %}
+      </div>
+      {% if is_today %}
+        <a href="{% url 'tracker:closeout' %}"
+           class="rounded-lg border border-outline-variant bg-surface-container-low px-4 py-2
+                  font-label-md text-label-md text-on-surface hover:bg-surface-container-high transition-colors whitespace-nowrap">
+          {% if summary.closed_at %}Edit closeout{% else %}Close out <span class="material-symbols-outlined" style="font-size:14px">arrow_forward</span>{% endif %}
+        </a>
+      {% elif summary.closeout_window_open %}
+        <a href="{% url 'tracker:closeout-on' summary.date|date:'Y-m-d' %}"
+           class="rounded-lg border border-outline-variant bg-surface-container-low px-4 py-2
+                  font-label-md text-label-md text-on-surface hover:bg-surface-container-high transition-colors whitespace-nowrap">
+          {% if summary.closed_at %}Edit closeout{% else %}Close out <span class="material-symbols-outlined" style="font-size:14px">arrow_forward</span>{% endif %}
+        </a>
+      {% endif %}
     </div>
-    {# ---- Closeout state row (today only) ---------------------------- #}
-    {% if is_today %}
-        <div class="mt-3 flex items-center justify-between gap-3 text-sm">
-            <div class="text-slate-600">
-                {% if summary.closed_at %}
-                    <span class="inline-flex items-center gap-1.5">
-                        <span class="text-emerald-600" aria-hidden="true">✓</span>
-                        Closed out at {{ summary.closed_at|time:"H:i" }}
-                    </span>
-                {% else %}
-                    <span class="text-slate-500">Day not closed yet.</span>
-                {% endif %}
-            </div>
-            <a href="{% url 'tracker:closeout' %}"
-               class="rounded-md border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-100">
-                {% if summary.closed_at %}Edit closeout{% else %}Close out →{% endif %}
-            </a>
-        </div>
-    {% endif %}
-</section>
+  </section>
 
-{# ---- Macros -------------------------------------------------------- #}
-<section class="mb-6">
-    <h2 class="text-lg font-semibold mb-3">Macros</h2>
-    <div class="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100">
+  {# ── Bento grid: macros + habits, then walking + weight, then rest ─────────── #}
+  <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+
+    {# Macros — 7 cols #}
+    <section class="md:col-span-7 bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant">
+      <h3 class="font-display text-headline-md text-primary mb-4">Macros</h3>
+      <div class="space-y-4">
         {% for row in summary.macros %}
-        <div class="px-4 py-3">
-            <div class="flex items-baseline justify-between mb-1.5">
-                <div class="flex items-baseline gap-2">
-                    <span class="text-sm font-medium text-slate-900">{{ row.label }}</span>
-                    {% if row.is_non_negotiable %}
-                        <span class="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Non-negotiable</span>
-                    {% endif %}
-                </div>
-                <div class="text-sm tabular-nums">
-                    <span class="font-semibold text-slate-900">{{ row.actual|floatformat:0 }}</span>
-                    <span class="text-slate-400"> / {{ row.target }} {{ row.unit }}</span>
-                </div>
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="font-body-md text-body-md text-on-surface font-medium">{{ row.label }}</span>
+                {% if row.is_non_negotiable %}
+                  <span class="font-label-md text-label-md px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant">
+                    Non-negotiable
+                  </span>
+                {% endif %}
+              </div>
+              <span class="font-body-md text-body-md tabular-nums">
+                <span class="font-medium text-on-surface">{{ row.actual|floatformat:0 }}</span>
+                <span class="text-on-surface-variant"> / {{ row.target }} {{ row.unit }}</span>
+              </span>
             </div>
-            <div class="h-2 bg-slate-100 rounded overflow-hidden relative">
-                <div class="h-full
-                    {% if row.status == 'hit' %}bg-emerald-500{% elif row.status == 'warn' %}bg-amber-500{% else %}bg-red-500{% endif %}"
-                    style="width: {{ row.pct }}%; max-width: 100%;">
-                </div>
+            <div class="h-2.5 bg-surface-container-high rounded-full overflow-hidden">
+              <div class="h-full rounded-full transition-all
+                  {% if row.status == 'hit' %}bg-primary{% elif row.status == 'warn' %}bg-tertiary-fixed-dim{% else %}bg-secondary{% endif %}"
+                  style="width: min({{ row.pct }}%, 100%);">
+              </div>
             </div>
-            <div class="mt-1 flex justify-between text-xs text-slate-500">
-                <span>{{ row.pct }}% of target</span>
-                <span class="tabular-nums">
-                    {% if row.over > 0 %}
-                        {{ row.over|floatformat:0 }} {{ row.unit }} over
-                    {% else %}
-                        {{ row.remaining|floatformat:0 }} {{ row.unit }} to go
-                    {% endif %}
-                </span>
+            <div class="mt-1 flex justify-between font-label-md text-label-md text-on-surface-variant">
+              <span>{{ row.pct }}% of target</span>
+              <span class="tabular-nums">
+                {% if row.over > 0 %}{{ row.over|floatformat:0 }} {{ row.unit }} over{% else %}{{ row.remaining|floatformat:0 }} {{ row.unit }} to go{% endif %}
+              </span>
             </div>
-        </div>
+          </div>
         {% endfor %}
-    </div>
-    {% if summary.kcal_floor_breached %}
-    <div class="mt-2 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">
-        ⚠ Below the {{ summary.kcal_floor }} kcal floor. Persistent under-eating sabotages protein retention and sleep.
-    </div>
-    {% endif %}
-</section>
+      </div>
+      {% if summary.kcal_floor_breached %}
+        <div class="mt-4 rounded-lg bg-error-container border border-on-error-container px-3 py-2 font-label-md text-label-md text-on-error-container flex items-center gap-2">
+          <span class="material-symbols-outlined fill text-error" style="font-size:16px">warning</span>
+          Below the {{ summary.kcal_floor }} kcal floor. Persistent under-eating sabotages protein retention and sleep.
+        </div>
+      {% endif %}
+    </section>
 
-{# ---- Habits -------------------------------------------------------- #}
-<section class="mb-6">
-    <div class="flex items-baseline justify-between mb-3">
-        <h2 class="text-lg font-semibold">Habits</h2>
-        <span class="text-sm text-slate-500 tabular-nums">{{ summary.habits.completed }} / {{ summary.habits.total }}</span>
-    </div>
-    <div class="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100">
+    {# Habits — 5 cols #}
+    <section class="md:col-span-5 bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-display text-headline-md text-primary">Habits</h3>
+        <span class="font-label-md text-label-md text-on-surface-variant tabular-nums">{{ summary.habits.completed }} / {{ summary.habits.total }}</span>
+      </div>
+      <div class="space-y-2">
         {% for row in summary.habits.rows %}
-        <div class="px-4 py-2.5 flex items-center gap-3">
-            <span class="inline-flex h-5 w-5 items-center justify-center rounded border text-xs
-                {% if row.done %}bg-emerald-500 border-emerald-500 text-white{% else %}border-slate-300 text-transparent{% endif %}">
-                ✓
-            </span>
-            <span class="text-sm {% if row.done %}text-slate-900{% else %}text-slate-500{% endif %}">
-                {{ row.label }}
-            </span>
-        </div>
+          <div class="flex items-center gap-3 px-3 py-2 rounded-lg
+                      {% if row.done %}bg-primary-fixed/30{% else %}bg-surface-container{% endif %}">
+            {% if row.done %}
+              <span class="material-symbols-outlined fill text-primary" style="font-size:18px">check_circle</span>
+            {% else %}
+              <span class="material-symbols-outlined text-on-surface-variant" style="font-size:18px">radio_button_unchecked</span>
+            {% endif %}
+            <span class="font-body-md text-body-md {% if row.done %}text-primary{% else %}text-on-surface-variant{% endif %}">{{ row.label }}</span>
+          </div>
         {% endfor %}
-    </div>
-    {% if summary.habits.notes %}
-    <p class="mt-2 text-xs text-slate-500 italic">Notes: {{ summary.habits.notes }}</p>
-    {% endif %}
-</section>
+      </div>
+      {% if summary.habits.notes %}
+        <p class="mt-3 font-label-md text-label-md text-on-surface-variant italic">Notes: {{ summary.habits.notes }}</p>
+      {% endif %}
+    </section>
 
-{# ---- Walking ------------------------------------------------------- #}
-<section class="mb-6">
-    <h2 class="text-lg font-semibold mb-3">Walking</h2>
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-        <div class="flex items-baseline justify-between">
-            <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500">Minutes today</div>
-                <div class="mt-1 text-2xl font-semibold tabular-nums">{{ summary.walking.walked_minutes }}</div>
-                {% if summary.walking.steps %}
-                    <div class="text-xs text-slate-400">{{ summary.walking.steps }} steps</div>
-                {% endif %}
-            </div>
-            <div class="text-right">
-                <div class="text-xs uppercase tracking-wide text-slate-500">Week {{ summary.protocol_week }} target</div>
-                <div class="mt-1 text-2xl text-slate-700 tabular-nums">{{ summary.walking.target_minutes }} min</div>
-            </div>
+    {# Walking — 5 cols #}
+    <section class="md:col-span-5 bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-display text-headline-md text-primary">Walking</h3>
+        <span class="material-symbols-outlined text-tertiary-fixed-dim" style="font-size:24px;font-variation-settings:'FILL' 1">directions_walk</span>
+      </div>
+      <div class="flex items-end justify-between gap-4">
+        <div>
+          <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Today</span>
+          <span class="block font-display text-headline-lg text-primary tabular-nums">{{ summary.walking.walked_minutes }}</span>
+          <span class="block font-label-md text-label-md text-on-surface-variant">min</span>
+          {% if summary.walking.steps %}
+            <span class="block font-label-md text-label-md text-on-surface-variant mt-1">{{ summary.walking.steps }} steps</span>
+          {% endif %}
         </div>
-        <p class="mt-3 text-sm
-            {% if summary.walking.status == 'hit' %}text-emerald-700{% elif summary.walking.status == 'warn' %}text-amber-700{% else %}text-red-700{% endif %}">
-            {{ summary.walking.message }}
-        </p>
-    </div>
-</section>
-
-{# ---- Food quality / Holt satiety ----------------------------------- #}
-<section class="mb-6">
-    <h2 class="text-lg font-semibold mb-3">Food quality (satiety)</h2>
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-        {% if summary.satiety.available %}
-            <div class="flex items-baseline justify-between">
-                <div>
-                    <div class="text-xs uppercase tracking-wide text-slate-500">Holt average</div>
-                    <div class="mt-1 text-2xl font-semibold tabular-nums">{{ summary.satiety.average }}</div>
-                </div>
-                <div class="text-right">
-                    <div class="text-xs uppercase tracking-wide text-slate-500">Baseline</div>
-                    <div class="mt-1 text-2xl text-slate-700 tabular-nums">{{ summary.satiety.baseline }}</div>
-                    <div class="text-xs text-slate-400">white bread</div>
-                </div>
-            </div>
-            <p class="mt-3 text-sm text-slate-700">{{ summary.satiety.message }}</p>
-            {% if summary.satiety.high_satiety_items %}
-                <div class="mt-3 text-xs">
-                    <div class="uppercase tracking-wide text-emerald-700 mb-1">Strong picks</div>
-                    <ul class="text-slate-600 space-y-0.5">
-                        {% for name, score in summary.satiety.high_satiety_items %}
-                            <li>{{ name }} <span class="text-slate-400">· {{ score }}</span></li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endif %}
-            {% if summary.satiety.leakage_items %}
-                <div class="mt-3 text-xs">
-                    <div class="uppercase tracking-wide text-amber-700 mb-1">Below baseline</div>
-                    <ul class="text-slate-600 space-y-0.5">
-                        {% for name, score in summary.satiety.leakage_items %}
-                            <li>{{ name }} <span class="text-slate-400">· {{ score }}</span></li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endif %}
-        {% else %}
-            <p class="text-sm text-slate-500">{{ summary.satiety.message }}</p>
-        {% endif %}
-    </div>
-</section>
-
-{# ---- Weight pace --------------------------------------------------- #}
-<section class="mb-6">
-    <h2 class="text-lg font-semibold mb-3">Weight &amp; pace</h2>
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-        {% if summary.weight.available %}
-            <div class="grid grid-cols-3 gap-4 text-sm">
-                <div>
-                    <div class="text-xs uppercase tracking-wide text-slate-500">Current</div>
-                    <div class="mt-1 text-xl font-semibold tabular-nums">{{ summary.weight.latest_kg }} kg</div>
-                    <div class="text-xs text-slate-400">
-                        {{ summary.weight.latest_date|date:"j M" }}
-                        {% if summary.weight.days_since_last_weigh_in > 0 %}
-                            · {{ summary.weight.days_since_last_weigh_in }}d ago
-                        {% endif %}
-                    </div>
-                </div>
-                <div>
-                    <div class="text-xs uppercase tracking-wide text-slate-500">Since start</div>
-                    <div class="mt-1 text-xl font-semibold tabular-nums
-                        {% if summary.weight.delta_total_kg < 0 %}text-emerald-700{% elif summary.weight.delta_total_kg > 0 %}text-red-700{% endif %}">
-                        {{ summary.weight.delta_total_kg|floatformat:1 }} kg
-                    </div>
-                    <div class="text-xs text-slate-400">from 120 kg</div>
-                </div>
-                <div>
-                    <div class="text-xs uppercase tracking-wide text-slate-500">To goal</div>
-                    <div class="mt-1 text-xl font-semibold tabular-nums">
-                        {{ summary.weight.kg_to_goal|floatformat:1 }} kg
-                    </div>
-                    <div class="text-xs text-slate-400">to 90 kg</div>
-                </div>
-            </div>
-            <div class="mt-4 pt-4 border-t border-slate-100">
-                <div class="flex items-baseline justify-between text-sm">
-                    <span class="text-slate-500">Required rate (9–14 mo)</span>
-                    <span class="tabular-nums">
-                        {% if summary.weight.required_kg_per_week_min %}
-                            {{ summary.weight.required_kg_per_week_min|floatformat:2 }}–{{ summary.weight.required_kg_per_week_max|floatformat:2 }} kg/wk loss
-                        {% else %}
-                            —
-                        {% endif %}
-                    </span>
-                </div>
-                <div class="flex items-baseline justify-between text-sm mt-1">
-                    <span class="text-slate-500">Last 4-wk actual</span>
-                    <span class="tabular-nums
-                        {% if summary.weight.on_pace == True %}text-emerald-700 font-semibold{% elif summary.weight.on_pace == False %}text-red-700{% endif %}">
-                        {% if summary.weight.actual_kg_per_week_last_4w is not None %}
-                            {{ summary.weight.actual_kg_per_week_last_4w|floatformat:2 }} kg/wk
-                        {% else %}
-                            not enough data
-                        {% endif %}
-                    </span>
-                </div>
-                {% if summary.weight.delta_last_week_kg is not None %}
-                <div class="flex items-baseline justify-between text-sm mt-1">
-                    <span class="text-slate-500">Last 7 days</span>
-                    <span class="tabular-nums
-                        {% if summary.weight.delta_last_week_kg < 0 %}text-emerald-700{% elif summary.weight.delta_last_week_kg > 0 %}text-red-700{% endif %}">
-                        {{ summary.weight.delta_last_week_kg|floatformat:2 }} kg
-                    </span>
-                </div>
-                {% endif %}
-                <p class="mt-3 text-sm
-                    {% if summary.weight.on_pace == True %}text-emerald-700{% elif summary.weight.on_pace == False %}text-red-700{% else %}text-slate-600{% endif %}">
-                    {{ summary.weight.message }}
-                </p>
-            </div>
-        {% else %}
-            <p class="text-sm text-slate-500">{{ summary.weight.message }}</p>
-        {% endif %}
-    </div>
-</section>
-
-{# ---- Week to date -------------------------------------------------- #}
-<section class="mb-6">
-    <h2 class="text-lg font-semibold mb-3">Week to date</h2>
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-        <div class="grid grid-cols-3 gap-4 text-sm">
-            <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500">Habits</div>
-                <div class="mt-1 text-xl font-semibold tabular-nums">{{ summary.week_to_date.habits_hit }} / {{ summary.week_to_date.habits_possible }}</div>
-                <div class="text-xs text-slate-400">{{ summary.week_to_date.habits_pct }}% of slots</div>
-            </div>
-            <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500">Walking</div>
-                <div class="mt-1 text-xl font-semibold tabular-nums">{{ summary.week_to_date.walking_total_minutes }} min</div>
-                <div class="text-xs text-slate-400">{{ summary.week_to_date.days_walked }}/{{ summary.week_to_date.days_so_far }} days</div>
-            </div>
-            <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500">Weight Δ</div>
-                <div class="mt-1 text-xl font-semibold tabular-nums
-                    {% if summary.week_to_date.weight_delta_kg and summary.week_to_date.weight_delta_kg < 0 %}text-emerald-700{% elif summary.week_to_date.weight_delta_kg and summary.week_to_date.weight_delta_kg > 0 %}text-red-700{% endif %}">
-                    {% if summary.week_to_date.weight_delta_kg is not None %}
-                        {{ summary.week_to_date.weight_delta_kg|floatformat:2 }} kg
-                    {% else %}
-                        —
-                    {% endif %}
-                </div>
-                <div class="text-xs text-slate-400">
-                    {% if summary.week_to_date.weight_count >= 2 %}
-                        {{ summary.week_to_date.weight_count }} weigh-ins this week
-                    {% else %}
-                        need 2+ weigh-ins
-                    {% endif %}
-                </div>
-            </div>
+        <div class="text-right">
+          <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Wk {{ summary.protocol_week }} target</span>
+          <span class="block font-display text-headline-lg text-tertiary tabular-nums">{{ summary.walking.target_minutes }}</span>
+          <span class="block font-label-md text-label-md text-on-surface-variant">min</span>
         </div>
-    </div>
-</section>
+      </div>
+      <p class="mt-4 font-body-md text-body-md
+          {% if summary.walking.status == 'hit' %}text-primary{% elif summary.walking.status == 'warn' %}text-tertiary{% else %}text-secondary{% endif %}">
+        {{ summary.walking.message }}
+      </p>
+    </section>
 
-{# ---- Consistency --------------------------------------------------- #}
-<section class="mb-6">
-    <h2 class="text-lg font-semibold mb-3">Consistency</h2>
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-        <div class="grid gap-4 sm:grid-cols-3 text-sm">
-            <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500">Closeout streak</div>
-                <div class="mt-1 text-xl font-semibold tabular-nums">{{ summary.consistency.closeout_streak }} day{{ summary.consistency.closeout_streak|pluralize }}</div>
-                <div class="text-xs text-slate-400">consecutive closed days</div>
-            </div>
-            <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500">Weekday adherence</div>
-                <div class="mt-1 text-xl font-semibold tabular-nums">
-                    {% if summary.consistency.weekday_weekend.weekday_pct is not None %}{{ summary.consistency.weekday_weekend.weekday_pct }}%{% else %}—{% endif %}
-                </div>
-                <div class="text-xs text-slate-400">last 28 days</div>
-            </div>
-            <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500">Weekend adherence</div>
-                <div class="mt-1 text-xl font-semibold tabular-nums">
-                    {% if summary.consistency.weekday_weekend.weekend_pct is not None %}{{ summary.consistency.weekday_weekend.weekend_pct }}%{% else %}—{% endif %}
-                </div>
-                <div class="text-xs text-slate-400">last 28 days</div>
-            </div>
+    {# Weight & pace — 7 cols #}
+    <section class="md:col-span-7 bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant">
+      <h3 class="font-display text-headline-md text-primary mb-4">Weight &amp; pace</h3>
+      {% if summary.weight.available %}
+        <div class="grid grid-cols-3 gap-4 mb-5">
+          <div>
+            <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Current</span>
+            <span class="block font-display text-headline-lg text-primary tabular-nums mt-1">{{ summary.weight.latest_kg }}</span>
+            <span class="block font-label-md text-label-md text-on-surface-variant">kg · {{ summary.weight.latest_date|date:"j M" }}</span>
+          </div>
+          <div>
+            <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Since start</span>
+            <span class="block font-display text-headline-lg tabular-nums mt-1
+                {% if summary.weight.delta_total_kg < 0 %}text-primary{% elif summary.weight.delta_total_kg > 0 %}text-secondary{% else %}text-on-surface{% endif %}">
+              {{ summary.weight.delta_total_kg|floatformat:1 }}
+            </span>
+            <span class="block font-label-md text-label-md text-on-surface-variant">kg from 120</span>
+          </div>
+          <div>
+            <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">To goal</span>
+            <span class="block font-display text-headline-lg text-tertiary tabular-nums mt-1">{{ summary.weight.kg_to_goal|floatformat:1 }}</span>
+            <span class="block font-label-md text-label-md text-on-surface-variant">kg to 90</span>
+          </div>
         </div>
-        <p class="mt-3 text-sm {% if summary.consistency.weekday_weekend.weekend_drop_risk %}text-amber-700{% else %}text-slate-600{% endif %}">
-            {{ summary.consistency.weekday_weekend.message }}
-        </p>
-    </div>
-</section>
+        <div class="border-t border-outline-variant pt-4 space-y-2">
+          <div class="flex items-baseline justify-between font-body-md text-body-md">
+            <span class="text-on-surface-variant">Required rate (9–14 mo)</span>
+            <span class="tabular-nums text-on-surface">
+              {% if summary.weight.required_kg_per_week_min %}
+                {{ summary.weight.required_kg_per_week_min|floatformat:2 }}–{{ summary.weight.required_kg_per_week_max|floatformat:2 }} kg/wk
+              {% else %}—{% endif %}
+            </span>
+          </div>
+          <div class="flex items-baseline justify-between font-body-md text-body-md">
+            <span class="text-on-surface-variant">Last 4-wk actual</span>
+            <span class="tabular-nums {% if summary.weight.on_pace == True %}text-primary font-medium{% elif summary.weight.on_pace == False %}text-secondary{% endif %}">
+              {% if summary.weight.actual_kg_per_week_last_4w is not None %}
+                {{ summary.weight.actual_kg_per_week_last_4w|floatformat:2 }} kg/wk
+              {% else %}not enough data{% endif %}
+            </span>
+          </div>
+          {% if summary.weight.delta_last_week_kg is not None %}
+            <div class="flex items-baseline justify-between font-body-md text-body-md">
+              <span class="text-on-surface-variant">Last 7 days</span>
+              <span class="tabular-nums {% if summary.weight.delta_last_week_kg < 0 %}text-primary{% elif summary.weight.delta_last_week_kg > 0 %}text-secondary{% endif %}">
+                {{ summary.weight.delta_last_week_kg|floatformat:2 }} kg
+              </span>
+            </div>
+          {% endif %}
+          <p class="font-body-md text-body-md mt-2
+              {% if summary.weight.on_pace == True %}text-primary{% elif summary.weight.on_pace == False %}text-secondary{% else %}text-on-surface-variant{% endif %}">
+            {{ summary.weight.message }}
+          </p>
+        </div>
+      {% else %}
+        <p class="font-body-md text-body-md text-on-surface-variant">{{ summary.weight.message }}</p>
+      {% endif %}
+    </section>
 
-{# ---- Today's meals (read-only, for context) ----------------------- #}
-{% if summary.meals %}
-<section class="mb-6">
-    <div class="flex items-baseline justify-between mb-3">
-        <h2 class="text-lg font-semibold">Today's meals</h2>
-        <span class="text-xs text-slate-500 tabular-nums">
+    {# Food quality / satiety — 12 cols #}
+    <section class="md:col-span-12 bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant">
+      <h3 class="font-display text-headline-md text-primary mb-4">Food quality (satiety)</h3>
+      {% if summary.satiety.available %}
+        <div class="flex items-end justify-between gap-4 mb-4">
+          <div>
+            <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Holt average</span>
+            <span class="block font-display text-headline-lg text-primary tabular-nums mt-1">{{ summary.satiety.average }}</span>
+          </div>
+          <div class="text-right">
+            <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Baseline</span>
+            <span class="block font-display text-headline-lg text-tertiary tabular-nums mt-1">{{ summary.satiety.baseline }}</span>
+            <span class="block font-label-md text-label-md text-on-surface-variant">white bread</span>
+          </div>
+        </div>
+        <p class="font-body-md text-body-md text-on-surface mb-4">{{ summary.satiety.message }}</p>
+        <div class="grid md:grid-cols-2 gap-4">
+          {% if summary.satiety.high_satiety_items %}
+            <div>
+              <span class="block font-label-md text-label-md text-primary uppercase tracking-widest mb-2">Strong picks</span>
+              <ul class="space-y-1">
+                {% for name, score in summary.satiety.high_satiety_items %}
+                  <li class="flex justify-between font-body-md text-body-md">
+                    <span class="text-on-surface">{{ name }}</span>
+                    <span class="tabular-nums text-on-surface-variant">{{ score }}</span>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+          {% if summary.satiety.leakage_items %}
+            <div>
+              <span class="block font-label-md text-label-md text-secondary uppercase tracking-widest mb-2">Below baseline</span>
+              <ul class="space-y-1">
+                {% for name, score in summary.satiety.leakage_items %}
+                  <li class="flex justify-between font-body-md text-body-md">
+                    <span class="text-on-surface">{{ name }}</span>
+                    <span class="tabular-nums text-on-surface-variant">{{ score }}</span>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+        </div>
+      {% else %}
+        <p class="font-body-md text-body-md text-on-surface-variant">{{ summary.satiety.message }}</p>
+      {% endif %}
+    </section>
+
+    {# Week to date — 12 cols #}
+    <section class="md:col-span-12 bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant">
+      <h3 class="font-display text-headline-md text-primary mb-4">Week to date</h3>
+      <div class="grid grid-cols-3 gap-6">
+        <div>
+          <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Habits</span>
+          <span class="block font-display text-headline-lg text-primary tabular-nums mt-1">{{ summary.week_to_date.habits_hit }}<span class="text-headline-md text-on-surface-variant">/{{ summary.week_to_date.habits_possible }}</span></span>
+          <span class="block font-label-md text-label-md text-on-surface-variant mt-1">{{ summary.week_to_date.habits_pct }}% of slots</span>
+        </div>
+        <div>
+          <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Walking</span>
+          <span class="block font-display text-headline-lg text-primary tabular-nums mt-1">{{ summary.week_to_date.walking_total_minutes }}</span>
+          <span class="block font-label-md text-label-md text-on-surface-variant mt-1">{{ summary.week_to_date.days_walked }}/{{ summary.week_to_date.days_so_far }} days</span>
+        </div>
+        <div>
+          <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Weight Δ</span>
+          <span class="block font-display text-headline-lg tabular-nums mt-1
+              {% if summary.week_to_date.weight_delta_kg and summary.week_to_date.weight_delta_kg < 0 %}text-primary{% elif summary.week_to_date.weight_delta_kg and summary.week_to_date.weight_delta_kg > 0 %}text-secondary{% else %}text-on-surface{% endif %}">
+            {% if summary.week_to_date.weight_delta_kg is not None %}{{ summary.week_to_date.weight_delta_kg|floatformat:2 }}{% else %}—{% endif %}
+          </span>
+          <span class="block font-label-md text-label-md text-on-surface-variant mt-1">
+            {% if summary.week_to_date.weight_count >= 2 %}{{ summary.week_to_date.weight_count }} weigh-ins{% else %}need 2+ weigh-ins{% endif %}
+          </span>
+        </div>
+      </div>
+    </section>
+
+    {# Consistency — 12 cols #}
+    <section class="md:col-span-12 bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant">
+      <h3 class="font-display text-headline-md text-primary mb-4">Consistency</h3>
+      <div class="grid grid-cols-3 gap-6 mb-4">
+        <div>
+          <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Closeout streak</span>
+          <span class="block font-display text-headline-lg text-primary tabular-nums mt-1">{{ summary.consistency.closeout_streak }}</span>
+          <span class="block font-label-md text-label-md text-on-surface-variant mt-1">consecutive day{{ summary.consistency.closeout_streak|pluralize }}</span>
+        </div>
+        <div>
+          <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Weekday adherence</span>
+          <span class="block font-display text-headline-lg text-primary tabular-nums mt-1">
+            {% if summary.consistency.weekday_weekend.weekday_pct is not None %}{{ summary.consistency.weekday_weekend.weekday_pct }}%{% else %}—{% endif %}
+          </span>
+          <span class="block font-label-md text-label-md text-on-surface-variant mt-1">last 28 days</span>
+        </div>
+        <div>
+          <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Weekend adherence</span>
+          <span class="block font-display text-headline-lg tabular-nums mt-1
+              {% if summary.consistency.weekday_weekend.weekend_drop_risk %}text-secondary{% else %}text-primary{% endif %}">
+            {% if summary.consistency.weekday_weekend.weekend_pct is not None %}{{ summary.consistency.weekday_weekend.weekend_pct }}%{% else %}—{% endif %}
+          </span>
+          <span class="block font-label-md text-label-md text-on-surface-variant mt-1">last 28 days</span>
+        </div>
+      </div>
+      <p class="font-body-md text-body-md {% if summary.consistency.weekday_weekend.weekend_drop_risk %}text-secondary{% else %}text-on-surface-variant{% endif %}">
+        {{ summary.consistency.weekday_weekend.message }}
+      </p>
+    </section>
+
+    {# Today's meals read-only — 12 cols #}
+    {% if summary.meals %}
+      <section class="md:col-span-12 bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-display text-headline-md text-primary">Today's meals</h3>
+          <span class="font-label-md text-label-md text-on-surface-variant tabular-nums">
             {{ summary.totals.kcal|floatformat:0 }} kcal · {{ summary.totals.protein_g|floatformat:0 }} g protein
-        </span>
-    </div>
-    <div class="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100">
-        {% for meal in summary.meals %}
-        <div class="px-4 py-3 flex items-start justify-between gap-4">
-            <div>
-                <div class="text-sm font-medium text-slate-900">{{ meal.food.name }}</div>
-                <div class="text-xs text-slate-500">
-                    {{ meal.grams|floatformat:0 }} g · {{ meal.eaten_at|time:"H:i" }}
-                    {% if meal.food.satiety_index %} · satiety {{ meal.food.satiety_index }}{% endif %}
-                </div>
-            </div>
-            <div class="text-right text-sm tabular-nums">
-                <div class="font-medium text-slate-900">{{ meal.kcal|floatformat:0 }} kcal</div>
-                <div class="text-xs text-slate-500">{{ meal.protein_g|floatformat:1 }} g protein</div>
-            </div>
+          </span>
         </div>
-        {% endfor %}
-    </div>
-</section>
-{% endif %}
+        <div class="space-y-1">
+          {% for meal in summary.meals %}
+            <div class="flex items-start justify-between gap-4 px-3 py-2.5 rounded-lg border-b border-outline-variant last:border-0">
+              <div>
+                <span class="block font-body-md text-body-md text-on-surface font-medium">{{ meal.food.name }}</span>
+                <span class="block font-label-md text-label-md text-on-surface-variant">
+                  {{ meal.grams|floatformat:0 }} g · {{ meal.eaten_at|time:"H:i" }}
+                  {% if meal.food.satiety_index %} · satiety {{ meal.food.satiety_index }}{% endif %}
+                </span>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="block font-body-md text-body-md text-on-surface font-medium tabular-nums">{{ meal.kcal|floatformat:0 }} kcal</span>
+                <span class="block font-label-md text-label-md text-on-surface-variant tabular-nums">{{ meal.protein_g|floatformat:1 }} g P</span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
 
-<section class="mb-6">
-    <a href="{% url 'tracker:dashboard' %}" class="text-sm text-slate-600 hover:text-slate-900 underline">
-        ← Back to dashboard
+  </div>
+
+  <div>
+    <a href="{% url 'tracker:dashboard' %}"
+       class="inline-flex items-center gap-1 font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors">
+      <span class="material-symbols-outlined" style="font-size:16px">arrow_back</span>
+      Back to dashboard
     </a>
-</section>
+  </div>
+
+</div>
 {% endblock %}

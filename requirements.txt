@@ -9,3 +9,5 @@ gunicorn>=23.0,<24.0
 whitenoise>=6.8,<7.0
 celery[redis]>=5.4,<5.5
 python-telegram-bot>=21.0,<22.0
+# External nutrition-data lookups (USDA FDC + Open Food Facts).
+requests>=2.32,<3.0

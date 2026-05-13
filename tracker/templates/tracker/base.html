@@ -1,101 +1,314 @@
 {% load static %}
 <!doctype html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#10b981">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#163422" />
     <title>{% block title %}Mealtracker{% endblock %}</title>
+
+    {# Google Fonts: Newsreader (serif display) + Manrope (sans UI) #}
+    {# display=optional: 100ms block window then uses cached font — no reflow for daily use. #}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=optional" rel="stylesheet" />
+    {# Material Symbols: display=block keeps icon slots sized correctly while loading (no box → icon flash) #}
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet" />
+
     {# Tailwind via CDN is fine for the MVP. Swap to a built pipeline if/when this grows. #}
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface":                    "#fbf9f4",
+              "surface-dim":                "#dbdad5",
+              "surface-bright":             "#fbf9f4",
+              "surface-container-lowest":   "#ffffff",
+              "surface-container-low":      "#f5f3ee",
+              "surface-container":          "#f0eee9",
+              "surface-container-high":     "#eae8e3",
+              "surface-container-highest":  "#e4e2dd",
+              "surface-variant":            "#e4e2dd",
+              "on-surface":                 "#1b1c19",
+              "on-surface-variant":         "#424843",
+              "inverse-surface":            "#30312e",
+              "inverse-on-surface":         "#f2f1ec",
+              "outline":                    "#727972",
+              "outline-variant":            "#c2c8c0",
+              "surface-tint":               "#466550",
+              "background":                 "#fbf9f4",
+              "on-background":              "#1b1c19",
+              "primary":                    "#163422",
+              "on-primary":                 "#ffffff",
+              "primary-container":          "#2d4b37",
+              "on-primary-container":       "#99baa1",
+              "inverse-primary":            "#adcfb4",
+              "primary-fixed":              "#c8ebd0",
+              "primary-fixed-dim":          "#adcfb4",
+              "on-primary-fixed":           "#022110",
+              "on-primary-fixed-variant":   "#2f4d39",
+              "secondary":                  "#97472a",
+              "on-secondary":               "#ffffff",
+              "secondary-container":        "#ff9875",
+              "on-secondary-container":     "#772f14",
+              "secondary-fixed":            "#ffdbd0",
+              "secondary-fixed-dim":        "#ffb59c",
+              "on-secondary-fixed":         "#390c00",
+              "on-secondary-fixed-variant": "#793015",
+              "tertiary":                   "#2b3112",
+              "on-tertiary":                "#ffffff",
+              "tertiary-container":         "#424727",
+              "on-tertiary-container":      "#afb58c",
+              "tertiary-fixed":             "#e0e6ba",
+              "tertiary-fixed-dim":         "#c4ca9f",
+              "on-tertiary-fixed":          "#191e03",
+              "on-tertiary-fixed-variant":  "#444a29",
+              "error":                      "#ba1a1a",
+              "on-error":                   "#ffffff",
+              "error-container":            "#ffdad6",
+              "on-error-container":         "#93000a",
+            },
+            spacing: {
+              "unit":           "8px",
+              "stack-sm":       "12px",
+              "stack-md":       "24px",
+              "stack-lg":       "48px",
+              "gutter":         "24px",
+              "margin-mobile":  "16px",
+              "container-max":  "1024px",
+            },
+            fontFamily: {
+              "display":            ["Newsreader", "serif"],
+              "headline-lg":        ["Newsreader", "serif"],
+              "headline-lg-mobile": ["Newsreader", "serif"],
+              "headline-md":        ["Newsreader", "serif"],
+              "body-lg":            ["Manrope", "sans-serif"],
+              "body-md":            ["Manrope", "sans-serif"],
+              "label-md":           ["Manrope", "sans-serif"],
+            },
+            fontSize: {
+              "display":            ["42px", { lineHeight: "1.2", letterSpacing: "-0.02em", fontWeight: "600" }],
+              "headline-lg":        ["32px", { lineHeight: "1.3", fontWeight: "500" }],
+              "headline-lg-mobile": ["28px", { lineHeight: "1.3", fontWeight: "500" }],
+              "headline-md":        ["24px", { lineHeight: "1.4", fontWeight: "500" }],
+              "body-lg":            ["18px", { lineHeight: "1.6", fontWeight: "400" }],
+              "body-md":            ["16px", { lineHeight: "1.6", fontWeight: "400" }],
+              "label-md":           ["14px", { lineHeight: "1.2", letterSpacing: "0.05em", fontWeight: "600" }],
+            },
+          },
+        },
+      };
+    </script>
+
     <script src="https://unpkg.com/htmx.org@2.0.3" defer></script>
     <script defer src="{% static 'tracker/js/app.js' %}"></script>
+
     <style>
-        /* Smooth in-page scroll for the mobile FAB anchor jump. */
-        html { scroll-behavior: smooth; }
-        /* Toast fade-in for OOB swaps so the entrance isn't jarring. */
-        [data-toast] { animation: mt-toast-in 180ms ease-out both; }
-        @keyframes mt-toast-in {
-            from { opacity: 0; transform: translate(-50%, 0.5rem); }
-            to   { opacity: 1; transform: translate(-50%, 0); }
-        }
+      /* Stitch soft shadow utility */
+      .shadow-soft { box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.04); }
+
+      /* Material Symbols defaults */
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        vertical-align: middle;
+        line-height: 1;
+        user-select: none;
+      }
+      .material-symbols-outlined.fill {
+        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+
+      /* Custom checkbox for closeout habits */
+      .custom-checkbox {
+        appearance: none;
+        background-color: transparent;
+        margin: 0;
+        font: inherit;
+        color: currentColor;
+        width: 1.25rem;
+        height: 1.25rem;
+        border: 1.5px solid #c2c8c0;
+        border-radius: 0.25rem;
+        display: grid;
+        place-content: center;
+        transition: all 0.15s ease-in-out;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .custom-checkbox::before {
+        content: "";
+        width: 0.6rem;
+        height: 0.6rem;
+        transform: scale(0);
+        transition: 100ms transform ease-in-out;
+        background-color: #163422;
+        clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+      }
+      .custom-checkbox:checked::before { transform: scale(1); }
+      .custom-checkbox:checked {
+        border-color: #163422;
+        background-color: #c8ebd0;
+      }
+      .custom-checkbox:focus-visible {
+        outline: 2px solid #163422;
+        outline-offset: 2px;
+      }
+
+      /* Smooth scroll for mobile FAB anchor jump */
+      html { scroll-behavior: smooth; }
+
+      /* Toast fade-in for OOB swaps */
+      [data-toast] {
+        animation: mt-toast-in 180ms ease-out both;
+      }
+      @keyframes mt-toast-in {
+        from { opacity: 0; transform: translate(-50%, 0.5rem); }
+        to   { opacity: 1; transform: translate(-50%, 0); }
+      }
+
+      /* Cross-document page transitions (Chrome 111+, Edge, Safari 18+) */
+      @view-transition {
+        navigation: auto;
+      }
+      @keyframes page-in {
+        from { opacity: 0; transform: translateY(4px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      ::view-transition-new(root) {
+        animation: page-in 200ms ease-out;
+      }
+      ::view-transition-old(root) {
+        animation: page-in 150ms ease-in reverse;
+      }
     </style>
-</head>
-<body class="bg-slate-50 text-slate-900 antialiased min-h-screen pb-20 md:pb-0">
+  </head>
+
+  <body class="bg-background text-on-background min-h-screen pb-24 md:pb-0 font-body-md text-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
+
     {% with active=request.resolver_match.url_name %}
-    <header class="border-b border-slate-200 bg-white sticky top-0 z-30">
-        <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-            <a href="{% url 'tracker:dashboard' %}" class="font-semibold tracking-tight text-slate-900">
-                Mealtracker
-            </a>
-            {# Desktop nav: visible from md upwards. Mobile gets the bottom bar instead. #}
-            <nav class="hidden md:flex text-sm text-slate-600 gap-4 items-center">
-                <a href="{% url 'tracker:dashboard' %}" class="hover:text-slate-900 {% if active == 'dashboard' %}text-slate-900 font-medium{% endif %}">Today</a>
-                <a href="{% url 'tracker:closeout' %}" class="hover:text-slate-900 {% if active == 'closeout' %}text-slate-900 font-medium{% endif %}">Closeout</a>
-                <a href="{% url 'tracker:summary' %}" class="hover:text-slate-900 {% if active == 'summary' or active == 'summary-on' %}text-slate-900 font-medium{% endif %}">Summary</a>
-                <a href="{% url 'tracker:logged-meals' %}" class="hover:text-slate-900 {% if active == 'logged-meals' %}text-slate-900 font-medium{% endif %}">Meals</a>
-                <a href="{% url 'tracker:foods' %}" class="hover:text-slate-900 {% if active == 'foods' or active == 'food-add' or active == 'food-edit' %}text-slate-900 font-medium{% endif %}">Foods</a>
-                <a href="{% url 'tracker:recipes' %}" class="hover:text-slate-900 {% if active == 'recipes' or active == 'recipe-add' or active == 'recipe-edit' %}text-slate-900 font-medium{% endif %}">Recipes</a>
-                <a href="/admin/" class="hover:text-slate-900">Admin</a>
-            </nav>
-            {# Mobile: just an admin link + user pill so the brand has breathing room. #}
-            <div class="flex items-center gap-3 md:hidden text-sm text-slate-500">
-                <a href="/admin/" class="hover:text-slate-900">Admin</a>
-            </div>
-        </div>
+
+    {# ── Top app bar ────────────────────────────────────────────────────────── #}
+    <header class="sticky top-0 z-40 bg-surface border-b border-outline-variant shadow-sm md:shadow-none">
+      <div class="max-w-container-max mx-auto px-margin-mobile h-16 flex items-center justify-between gap-3">
+
+        {# Brand / avatar #}
+        <a href="{% url 'tracker:dashboard' %}" class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center overflow-hidden shrink-0">
+            <span class="material-symbols-outlined text-on-primary-container" style="font-size:20px">person</span>
+          </div>
+          <span class="font-display text-headline-md text-primary">Kudzai's Tracker</span>
+        </a>
+
+        {# Desktop nav — hidden on mobile #}
+        <nav class="hidden md:flex items-center gap-1" aria-label="Primary">
+          <a href="{% url 'tracker:dashboard' %}"
+             class="flex items-center gap-2 px-3 py-2 rounded-lg font-label-md text-label-md transition-colors
+                    {% if active == 'dashboard' %}text-primary bg-primary-fixed/30{% else %}text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface{% endif %}">
+            <span class="material-symbols-outlined {% if active == 'dashboard' %}fill{% endif %}" style="font-size:20px">dashboard</span>
+            Today
+          </a>
+          <a href="{% url 'tracker:closeout' %}"
+             class="flex items-center gap-2 px-3 py-2 rounded-lg font-label-md text-label-md transition-colors
+                    {% if active == 'closeout' %}text-primary bg-primary-fixed/30{% else %}text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface{% endif %}">
+            <span class="material-symbols-outlined {% if active == 'closeout' %}fill{% endif %}" style="font-size:20px">check_circle</span>
+            Closeout
+          </a>
+          <a href="{% url 'tracker:summary' %}"
+             class="flex items-center gap-2 px-3 py-2 rounded-lg font-label-md text-label-md transition-colors
+                    {% if active == 'summary' or active == 'summary-on' %}text-primary bg-primary-fixed/30{% else %}text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface{% endif %}">
+            <span class="material-symbols-outlined {% if active == 'summary' or active == 'summary-on' %}fill{% endif %}" style="font-size:20px">analytics</span>
+            Summary
+          </a>
+          <a href="{% url 'tracker:logged-meals' %}"
+             class="flex items-center gap-2 px-3 py-2 rounded-lg font-label-md text-label-md transition-colors
+                    {% if active == 'logged-meals' %}text-primary bg-primary-fixed/30{% else %}text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface{% endif %}">
+            <span class="material-symbols-outlined {% if active == 'logged-meals' %}fill{% endif %}" style="font-size:20px">restaurant</span>
+            Meals
+          </a>
+          <a href="{% url 'tracker:foods' %}"
+             class="flex items-center gap-2 px-3 py-2 rounded-lg font-label-md text-label-md transition-colors
+                    {% if active == 'foods' or active == 'food-add' or active == 'food-edit' %}text-primary bg-primary-fixed/30{% else %}text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface{% endif %}">
+            <span class="material-symbols-outlined {% if active == 'foods' or active == 'food-add' or active == 'food-edit' %}fill{% endif %}" style="font-size:20px">nutrition</span>
+            Foods
+          </a>
+          <a href="{% url 'tracker:recipes' %}"
+             class="flex items-center gap-2 px-3 py-2 rounded-lg font-label-md text-label-md transition-colors
+                    {% if active == 'recipes' or active == 'recipe-add' or active == 'recipe-edit' %}text-primary bg-primary-fixed/30{% else %}text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface{% endif %}">
+            <span class="material-symbols-outlined {% if active == 'recipes' or active == 'recipe-add' or active == 'recipe-edit' %}fill{% endif %}" style="font-size:20px">menu_book</span>
+            Recipes
+          </a>
+          <a href="/admin/"
+             class="flex items-center gap-2 px-3 py-2 rounded-lg font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors">
+            <span class="material-symbols-outlined" style="font-size:20px">admin_panel_settings</span>
+            Admin
+          </a>
+        </nav>
+
+        {# Mobile: admin link only (nav is the bottom bar) #}
+        <a href="/admin/" class="md:hidden text-on-surface-variant hover:text-on-surface">
+          <span class="material-symbols-outlined" style="font-size:22px">admin_panel_settings</span>
+        </a>
+      </div>
     </header>
 
-    <main class="max-w-3xl mx-auto px-4 py-6">
-        {% block content %}{% endblock %}
+    {# ── Page content ───────────────────────────────────────────────────────── #}
+    <main class="max-w-container-max mx-auto px-margin-mobile pt-stack-md md:pt-stack-lg">
+      {% block content %}{% endblock %}
     </main>
 
-    {# Mobile bottom tab bar. Hidden on md+ since the top nav covers it. #}
-    <nav
-        class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200
-               grid grid-cols-5 text-xs"
-        aria-label="Primary"
-    >
-        {% url 'tracker:dashboard' as today_url %}
-        {% url 'tracker:closeout' as closeout_url %}
-        {% url 'tracker:summary' as summary_url %}
-        {% url 'tracker:foods' as foods_url %}
-        {% url 'tracker:recipes' as recipes_url %}
-        <a href="{{ today_url }}"
-           class="flex flex-col items-center justify-center py-2 gap-0.5
-                  {% if active == 'dashboard' %}text-emerald-700 font-semibold{% else %}text-slate-500 hover:text-slate-900{% endif %}">
-            <span aria-hidden="true" class="text-lg leading-none">🏠</span>
-            Today
-        </a>
-        <a href="{{ closeout_url }}"
-           class="flex flex-col items-center justify-center py-2 gap-0.5
-                  {% if active == 'closeout' %}text-emerald-700 font-semibold{% else %}text-slate-500 hover:text-slate-900{% endif %}">
-            <span aria-hidden="true" class="text-lg leading-none">✓</span>
-            Close
-        </a>
-        <a href="{{ summary_url }}"
-           class="flex flex-col items-center justify-center py-2 gap-0.5
-                  {% if active == 'summary' or active == 'summary-on' %}text-emerald-700 font-semibold{% else %}text-slate-500 hover:text-slate-900{% endif %}">
-            <span aria-hidden="true" class="text-lg leading-none">📊</span>
-            Summary
-        </a>
-        <a href="{{ foods_url }}"
-           class="flex flex-col items-center justify-center py-2 gap-0.5
-                  {% if active == 'foods' or active == 'food-add' or active == 'food-edit' %}text-emerald-700 font-semibold{% else %}text-slate-500 hover:text-slate-900{% endif %}">
-            <span aria-hidden="true" class="text-lg leading-none">🥦</span>
-            Foods
-        </a>
-        <a href="{{ recipes_url }}"
-           class="flex flex-col items-center justify-center py-2 gap-0.5
-                  {% if active == 'recipes' or active == 'recipe-add' or active == 'recipe-edit' %}text-emerald-700 font-semibold{% else %}text-slate-500 hover:text-slate-900{% endif %}">
-            <span aria-hidden="true" class="text-lg leading-none">🍲</span>
-            Recipes
-        </a>
+    {# ── Mobile bottom tab bar — hidden on md+ ──────────────────────────────── #}
+    <nav class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-surface border-t border-outline-variant
+                flex justify-around items-center h-20 px-margin-mobile"
+         aria-label="Primary">
+
+      {% url 'tracker:dashboard'    as today_url %}
+      {% url 'tracker:closeout'     as closeout_url %}
+      {% url 'tracker:summary'      as summary_url %}
+      {% url 'tracker:foods'        as foods_url %}
+      {% url 'tracker:recipes'      as recipes_url %}
+
+      <a href="{{ today_url }}"
+         class="flex flex-col items-center justify-center px-3 py-1 rounded-xl transition-all duration-150
+                {% if active == 'dashboard' %}text-primary bg-primary-container/20 scale-95{% else %}text-on-surface-variant hover:text-on-surface{% endif %}">
+        <span class="material-symbols-outlined {% if active == 'dashboard' %}fill{% endif %}" style="font-size:24px">dashboard</span>
+        <span class="font-label-md text-[11px] mt-0.5">Today</span>
+      </a>
+
+      <a href="{{ closeout_url }}"
+         class="flex flex-col items-center justify-center px-3 py-1 rounded-xl transition-all duration-150
+                {% if active == 'closeout' %}text-primary bg-primary-container/20 scale-95{% else %}text-on-surface-variant hover:text-on-surface{% endif %}">
+        <span class="material-symbols-outlined {% if active == 'closeout' %}fill{% endif %}" style="font-size:24px">check_circle</span>
+        <span class="font-label-md text-[11px] mt-0.5">Close</span>
+      </a>
+
+      <a href="{{ summary_url }}"
+         class="flex flex-col items-center justify-center px-3 py-1 rounded-xl transition-all duration-150
+                {% if active == 'summary' or active == 'summary-on' %}text-primary bg-primary-container/20 scale-95{% else %}text-on-surface-variant hover:text-on-surface{% endif %}">
+        <span class="material-symbols-outlined {% if active == 'summary' or active == 'summary-on' %}fill{% endif %}" style="font-size:24px">analytics</span>
+        <span class="font-label-md text-[11px] mt-0.5">Summary</span>
+      </a>
+
+      <a href="{{ foods_url }}"
+         class="flex flex-col items-center justify-center px-3 py-1 rounded-xl transition-all duration-150
+                {% if active == 'foods' or active == 'food-add' or active == 'food-edit' %}text-primary bg-primary-container/20 scale-95{% else %}text-on-surface-variant hover:text-on-surface{% endif %}">
+        <span class="material-symbols-outlined {% if active == 'foods' or active == 'food-add' or active == 'food-edit' %}fill{% endif %}" style="font-size:24px">nutrition</span>
+        <span class="font-label-md text-[11px] mt-0.5">Foods</span>
+      </a>
+
+      <a href="{{ recipes_url }}"
+         class="flex flex-col items-center justify-center px-3 py-1 rounded-xl transition-all duration-150
+                {% if active == 'recipes' or active == 'recipe-add' or active == 'recipe-edit' %}text-primary bg-primary-container/20 scale-95{% else %}text-on-surface-variant hover:text-on-surface{% endif %}">
+        <span class="material-symbols-outlined {% if active == 'recipes' or active == 'recipe-add' or active == 'recipe-edit' %}fill{% endif %}" style="font-size:24px">menu_book</span>
+        <span class="font-label-md text-[11px] mt-0.5">Recipes</span>
+      </a>
     </nav>
 
-    {# Toast region — swapped out-of-band by HTMX responses. Sits above the #}
-    {# mobile bottom nav so it doesn't get covered by the tab bar. #}
+    {# ── Toast region — swapped OOB by HTMX responses ───────────────────────── #}
     {% include "tracker/partials/toast.html" with toast=None %}
 
     {% endwith %}
-</body>
+  </body>
 </html>

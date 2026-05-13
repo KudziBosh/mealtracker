@@ -9,11 +9,17 @@ app_name = "tracker"
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
     path("closeout/", views.closeout, name="closeout"),
+    path("closeout/<str:on_date>/", views.closeout, name="closeout-on"),
     path("summary/", views.progress_summary, name="summary"),
     path("summary/<str:on_date>/", views.progress_summary, name="summary-on"),
     path("foods/", views.food_list, name="foods"),
     path("foods/add/", views.food_create, name="food-add"),
     path("foods/<int:food_id>/edit/", views.food_edit, name="food-edit"),
+    path(
+        "htmx/foods/external-search/",
+        views.food_external_search,
+        name="htmx-food-external-search",
+    ),
     path("recipes/", views.recipe_list, name="recipes"),
     path("recipes/add/", views.recipe_create, name="recipe-add"),
     path("recipes/<int:recipe_id>/edit/", views.recipe_edit, name="recipe-edit"),

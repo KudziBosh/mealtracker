@@ -7,6 +7,18 @@ from django.db import models
 class FoodItem(models.Model):
     """A food with per-100g macro values and optional satiety score."""
 
+    # Where the macro numbers came from. Lets the foods list show a source
+    # badge so the owner knows at a glance whether the row was hand-entered
+    # or imported from a public dataset — and pin which dataset for audit.
+    SOURCE_MANUAL = "MANUAL"
+    SOURCE_FDC = "FDC"
+    SOURCE_OFF = "OFF"
+    SOURCE_CHOICES = [
+        (SOURCE_MANUAL, "Manual entry"),
+        (SOURCE_FDC, "USDA FoodData Central"),
+        (SOURCE_OFF, "Open Food Facts"),
+    ]
+
     name = models.CharField(max_length=255)
     kcal_per_100g = models.DecimalField(
         max_digits=6,
@@ -41,6 +53,17 @@ class FoodItem(models.Model):
         validators=[MinValueValidator(0)],
     )
     notes = models.CharField(max_length=500, blank=True)
+
+    # Provenance — see SOURCE_CHOICES above. ``source_id`` is the upstream
+    # primary key (FDC ``fdcId`` or OFF barcode); ``source_url`` is the
+    # human-browsable detail page so a future re-import can be one click.
+    source = models.CharField(
+        max_length=16,
+        choices=SOURCE_CHOICES,
+        default=SOURCE_MANUAL,
+    )
+    source_id = models.CharField(max_length=64, blank=True)
+    source_url = models.URLField(blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

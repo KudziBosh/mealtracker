@@ -3,59 +3,96 @@
 {% block title %}Logged meals · Mealtracker{% endblock %}
 
 {% block content %}
-<section class="mb-6">
-    <h1 class="text-2xl font-semibold tracking-tight">Logged meals</h1>
-    <p class="text-sm text-slate-500 mt-1">
-        Edit grams or delete rows for {{ target_date|date:"l, j F Y" }}. Useful after logging a recipe and adjusting what you actually ate.
+<div class="space-y-stack-md pb-stack-lg">
+
+  <header>
+    <h2 class="font-display text-display text-primary">Logged meals</h2>
+    <p class="font-body-lg text-body-lg text-on-surface-variant mt-1">
+      Edit grams or delete rows for {{ target_date|date:"l, j F Y" }}.
+      Useful after logging a recipe and adjusting what you actually ate.
     </p>
-</section>
+  </header>
 
-<section class="grid grid-cols-2 gap-4 mb-6">
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-        <div class="text-xs uppercase tracking-wide text-slate-500">Calories</div>
-        <div class="mt-1 text-2xl font-semibold">{{ totals.kcal|floatformat:0 }}</div>
+  {# Macro snapshot #}
+  <div class="grid grid-cols-2 gap-stack-sm">
+    <div class="bg-surface-container-lowest rounded-xl p-5 shadow-soft border border-outline-variant">
+      <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Calories</span>
+      <span class="block font-display text-headline-lg text-primary tabular-nums mt-1">{{ totals.kcal|floatformat:0 }}</span>
+      <span class="block font-label-md text-label-md text-on-surface-variant">kcal today</span>
     </div>
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-        <div class="text-xs uppercase tracking-wide text-slate-500">Protein</div>
-        <div class="mt-1 text-2xl font-semibold">{{ totals.protein_g|floatformat:0 }} g</div>
+    <div class="bg-surface-container-lowest rounded-xl p-5 shadow-soft border border-outline-variant">
+      <span class="block font-label-md text-label-md text-secondary uppercase tracking-wide">Protein</span>
+      <span class="block font-display text-headline-lg text-primary tabular-nums mt-1">{{ totals.protein_g|floatformat:0 }}</span>
+      <span class="block font-label-md text-label-md text-on-surface-variant">g today</span>
     </div>
-</section>
+  </div>
 
-<section class="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100">
+  {# Meal rows #}
+  <div class="space-y-3">
     {% for meal in meals %}
-    <div class="p-4">
-        <div class="flex items-start justify-between gap-4 mb-3">
-            <div>
-                <div class="font-medium text-slate-900">{{ meal.food.name }}</div>
-                <div class="text-xs text-slate-500">
-                    {{ meal.eaten_at|time:"H:i" }} · {{ meal.kcal|floatformat:0 }} kcal · {{ meal.protein_g|floatformat:1 }} g protein
-                </div>
-            </div>
+      <div class="bg-surface-container-lowest rounded-xl p-5 shadow-soft border border-outline-variant">
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <h3 class="font-display text-headline-md text-primary">{{ meal.food.name }}</h3>
+            <span class="font-label-md text-label-md text-on-surface-variant">
+              {{ meal.eaten_at|time:"H:i" }} ·
+              <span class="inline-flex items-center gap-1">
+                <span class="material-symbols-outlined" style="font-size:14px">local_fire_department</span>
+                {{ meal.kcal|floatformat:0 }} kcal
+              </span> ·
+              <span class="inline-flex items-center gap-1">
+                <span class="material-symbols-outlined" style="font-size:14px">fitness_center</span>
+                {{ meal.protein_g|floatformat:1 }}g P
+              </span>
+            </span>
+          </div>
         </div>
+
+        {# Edit grams #}
         <form method="post" class="flex flex-wrap items-end gap-3">
-            {% csrf_token %}
-            <input type="hidden" name="meal_id" value="{{ meal.id }}">
-            <input type="hidden" name="action" value="update">
-            <div>
-                <label for="grams-{{ meal.id }}" class="block text-sm font-medium text-slate-700 mb-1">Grams</label>
-                <input id="grams-{{ meal.id }}" name="grams" value="{{ meal.grams }}" type="number" step="0.01" min="0.01"
-                       class="w-32 rounded-md border-slate-300 text-sm shadow-sm focus:border-emerald-500 focus:ring-emerald-500">
-            </div>
-            <button type="submit" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-                Save grams
-            </button>
+          {% csrf_token %}
+          <input type="hidden" name="meal_id" value="{{ meal.id }}">
+          <input type="hidden" name="action" value="update">
+          <div>
+            <label for="grams-{{ meal.id }}" class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-1">Grams</label>
+            <input id="grams-{{ meal.id }}" name="grams" value="{{ meal.grams }}" type="number" step="0.01" min="0.01"
+                   class="w-28 bg-surface-container rounded-lg border border-outline-variant px-3 py-2.5
+                          font-body-md text-body-md text-on-surface
+                          focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors">
+          </div>
+          <button type="submit"
+                  class="bg-primary text-on-primary rounded-lg px-5 py-2.5 font-label-md text-label-md
+                         hover:bg-primary-container hover:text-on-primary-container transition-colors
+                         flex items-center gap-2">
+            <span class="material-symbols-outlined fill" style="font-size:16px">save</span>
+            Save
+          </button>
         </form>
-        <form method="post" class="mt-2">
-            {% csrf_token %}
-            <input type="hidden" name="meal_id" value="{{ meal.id }}">
-            <input type="hidden" name="action" value="delete">
-            <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-700">
-                Delete row
-            </button>
+
+        {# Delete row #}
+        <form method="post" class="mt-3">
+          {% csrf_token %}
+          <input type="hidden" name="meal_id" value="{{ meal.id }}">
+          <input type="hidden" name="action" value="delete">
+          <button type="submit"
+                  class="inline-flex items-center gap-1 font-label-md text-label-md text-error hover:text-on-error-container transition-colors">
+            <span class="material-symbols-outlined" style="font-size:16px">delete</span>
+            Delete row
+          </button>
         </form>
-    </div>
+      </div>
     {% empty %}
-    <p class="p-4 text-sm text-slate-500">No meals logged today.</p>
+      <div class="bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant">
+        <p class="font-body-md text-body-md text-on-surface-variant">No meals logged today.</p>
+      </div>
     {% endfor %}
-</section>
+  </div>
+
+  <a href="{% url 'tracker:dashboard' %}"
+     class="inline-flex items-center gap-1 font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors">
+    <span class="material-symbols-outlined" style="font-size:16px">arrow_back</span>
+    Back to dashboard
+  </a>
+
+</div>
 {% endblock %}

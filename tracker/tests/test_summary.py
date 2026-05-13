@@ -8,6 +8,7 @@ from decimal import Decimal
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
+from django.utils import timezone
 
 from tracker import protocol
 from tracker.models import DailyLog, FoodItem, MealEntry, WeightEntry
@@ -95,7 +96,10 @@ def test_protocol_week_clamps_below_1():
 
 def test_summary_on_track_day(user, chicken, potato):
     """Protein hit + kcal in range + walk target + 4/5 habits ⇒ on_track True."""
-    today = date(2026, 5, 12)
+    # Use ``timezone.localdate()`` so the implicit ``eaten_at=timezone.now()``
+    # on MealEntry rows lands on the same date the summary queries — keeps
+    # the test calendar-independent at the midnight boundary.
+    today = timezone.localdate()
     # 620g chicken + 1000g potato ≈ 1023 + 870 = 1893 kcal, 192 g protein.
     MealEntry.objects.create(user=user, food=chicken, grams=Decimal("620"))
     MealEntry.objects.create(user=user, food=potato, grams=Decimal("1000"))
@@ -109,7 +113,7 @@ def test_summary_on_track_day(user, chicken, potato):
         ate_breakfast=True,
     )
     # Set first weight 2 weeks earlier so we're in week 3, target = 45 min.
-    WeightEntry.objects.create(user=user, date=date(2026, 4, 28), weight_kg=Decimal("120.00"))
+    WeightEntry.objects.create(user=user, date=today - timedelta(weeks=2), weight_kg=Decimal("120.00"))
 
     summary = build_progress_summary(user, today)
 
@@ -131,7 +135,7 @@ def test_summary_on_track_day(user, chicken, potato):
 
 
 def test_summary_protein_short_flags_verdict_miss(user, chicken, potato):
-    today = date(2026, 5, 12)
+    today = timezone.localdate()
     # 300 g chicken (93 g protein) + 2000 g potato (1740 kcal, 38 g protein)
     # → ~2235 kcal total, ~131 g protein. Clears the kcal floor so the
     # protein-short branch is what surfaces in the verdict.
@@ -149,7 +153,7 @@ def test_summary_protein_short_flags_verdict_miss(user, chicken, potato):
 
 
 def test_summary_kcal_floor_breach_dominates_verdict(user, chicken):
-    today = date(2026, 5, 12)
+    today = timezone.localdate()
     # 500g chicken = 825 kcal, well below the 1800 floor.
     MealEntry.objects.create(user=user, food=chicken, grams=Decimal("500"))
     DailyLog.objects.create(user=user, date=today, walked_minutes=60)
@@ -162,7 +166,7 @@ def test_summary_kcal_floor_breach_dominates_verdict(user, chicken):
 
 
 def test_summary_satiety_leakage_listed(user, white_rice):
-    today = date(2026, 5, 12)
+    today = timezone.localdate()
     MealEntry.objects.create(user=user, food=white_rice, grams=Decimal("500"))
 
     summary = build_progress_summary(user, today)
@@ -173,22 +177,22 @@ def test_summary_satiety_leakage_listed(user, white_rice):
 
 
 def test_summary_no_satiety_data_when_no_meals(user):
-    today = date(2026, 5, 12)
+    today = timezone.localdate()
     summary = build_progress_summary(user, today)
     assert summary["satiety"]["available"] is False
 
 
 def test_summary_weight_pace_on_pace(user):
     """Losing 0.7 kg/week over 4+ weeks is inside the 9–14 month window."""
-    today = date(2026, 5, 12)
+    today = timezone.localdate()
     # 5 weeks of weigh-ins, dropping 0.7 kg/week.
     weights = [
-        (date(2026, 4, 7), Decimal("120.00")),
-        (date(2026, 4, 14), Decimal("119.30")),
-        (date(2026, 4, 21), Decimal("118.60")),
-        (date(2026, 4, 28), Decimal("117.90")),
-        (date(2026, 5, 5), Decimal("117.20")),
-        (date(2026, 5, 12), Decimal("116.50")),
+        (today - timedelta(weeks=5), Decimal("120.00")),
+        (today - timedelta(weeks=4), Decimal("119.30")),
+        (today - timedelta(weeks=3), Decimal("118.60")),
+        (today - timedelta(weeks=2), Decimal("117.90")),
+        (today - timedelta(weeks=1), Decimal("117.20")),
+        (today, Decimal("116.50")),
     ]
     for d, kg in weights:
         WeightEntry.objects.create(user=user, date=d, weight_kg=kg)
@@ -204,8 +208,8 @@ def test_summary_weight_pace_on_pace(user):
 
 def test_summary_weight_pace_off_pace_when_flat(user):
     """A flat 4 weeks ⇒ off-pace verdict."""
-    today = date(2026, 5, 12)
-    WeightEntry.objects.create(user=user, date=date(2026, 4, 7), weight_kg=Decimal("118.00"))
+    today = timezone.localdate()
+    WeightEntry.objects.create(user=user, date=today - timedelta(weeks=5), weight_kg=Decimal("118.00"))
     WeightEntry.objects.create(user=user, date=today, weight_kg=Decimal("118.10"))
 
     summary = build_progress_summary(user, today)
@@ -214,7 +218,7 @@ def test_summary_weight_pace_off_pace_when_flat(user):
 
 def test_summary_walking_uses_protocol_week_target(user):
     """Week 7+ steady-state target is 75 min; 60 min should be a 'warn'."""
-    today = date(2026, 5, 12)
+    today = timezone.localdate()
     # First weigh-in ~8 weeks ago → today is in week 8 (steady state, 75 min target).
     WeightEntry.objects.create(user=user, date=today - timedelta(weeks=8), weight_kg=Decimal("120"))
     DailyLog.objects.create(user=user, date=today, walked_minutes=60)

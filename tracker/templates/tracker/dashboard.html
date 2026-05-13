@@ -3,103 +3,116 @@
 {% block title %}Today · Mealtracker{% endblock %}
 
 {% block content %}
-<section class="mb-6">
-    <h1 class="text-2xl font-semibold tracking-tight">
-        {{ today|date:"l, j F Y" }}
-    </h1>
-    <p class="text-sm text-slate-500 mt-1">
-        Targets: {{ kcal_target }} kcal · <span class="font-medium text-slate-700">{{ protein_target_g }} g protein</span> · {{ fat_target_g }} g fat · {{ carb_target_g }} g carbs
+<div class="space-y-stack-lg pb-stack-lg">
+
+  {# ── Page header ─────────────────────────────────────────────────────────── #}
+  <section>
+    <h2 class="font-display text-display text-primary mb-1">Today's Summary</h2>
+    <p class="font-body-lg text-body-lg text-on-surface-variant">{{ today|date:"l, j F Y" }}</p>
+    <p class="font-label-md text-label-md text-on-surface-variant mt-1 uppercase tracking-wide">
+      Targets: {{ kcal_target }} kcal · {{ protein_target_g }} g protein · {{ fat_target_g }} g fat · {{ carb_target_g }} g carbs
     </p>
-</section>
+  </section>
 
-{% include "tracker/partials/meals_panel.html" %}
+  {# ── Meals panel (macro cards + log form + today's meals) ─────────────────── #}
+  {% include "tracker/partials/meals_panel.html" %}
 
-{% include "tracker/partials/habits_panel.html" %}
+  {# ── Habits panel ─────────────────────────────────────────────────────────── #}
+  {% include "tracker/partials/habits_panel.html" %}
 
-{# Weight card — moved above end-of-day because the user references their #}
-{# weight more often than the end-of-day summary during the working day. #}
-<section class="mb-8">
-    <h2 class="text-lg font-semibold mb-3">Weight</h2>
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-        {% if latest_weight %}
-            <div class="flex items-baseline justify-between">
-                <div>
-                    <div class="text-xs uppercase tracking-wide text-slate-500">Latest</div>
-                    <div class="mt-1 text-3xl font-semibold tabular-nums">{{ latest_weight.weight_kg }} kg</div>
-                    <div class="text-xs text-slate-400">{{ latest_weight.date|date:"j F Y" }}</div>
-                </div>
-                <div class="text-right">
-                    <div class="text-xs uppercase tracking-wide text-slate-500">Goal</div>
-                    <div class="mt-1 text-2xl text-slate-700 tabular-nums">{{ goal_weight_kg }} kg</div>
-                </div>
-            </div>
-            {% if week_weights %}
-            <div class="mt-4 pt-4 border-t border-slate-100">
-                <div class="text-xs uppercase tracking-wide text-slate-500 mb-2">Last 7 days</div>
-                <ul class="text-sm text-slate-600 space-y-1">
-                    {% for w in week_weights %}
-                        <li class="flex justify-between"><span>{{ w.date|date:"D j M" }}</span><span class="tabular-nums">{{ w.weight_kg }} kg</span></li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-        {% else %}
-            <p class="text-sm text-slate-500">
-                No weight entries yet. Add one via <a class="underline" href="/admin/tracker/weightentry/add/">admin</a>.
-            </p>
+  {# ── Weight card ──────────────────────────────────────────────────────────── #}
+  <section>
+    <h3 class="font-display text-headline-lg-mobile text-primary mb-4">Weight</h3>
+    <div class="bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant">
+      {% if latest_weight %}
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Latest</span>
+            <span class="block font-display text-display text-primary mt-1">{{ latest_weight.weight_kg }} <span class="text-headline-md">kg</span></span>
+            <span class="block font-label-md text-label-md text-on-surface-variant mt-1">{{ latest_weight.date|date:"j F Y" }}</span>
+          </div>
+          <div class="text-right">
+            <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide">Goal</span>
+            <span class="block font-display text-headline-lg text-tertiary mt-1">{{ goal_weight_kg }} kg</span>
+          </div>
+        </div>
+        {% if week_weights %}
+          <div class="mt-5 pt-5 border-t border-outline-variant">
+            <span class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-3">Last 7 days</span>
+            <ul class="space-y-1">
+              {% for w in week_weights %}
+                <li class="flex justify-between font-body-md text-body-md">
+                  <span class="text-on-surface-variant">{{ w.date|date:"D j M" }}</span>
+                  <span class="tabular-nums text-on-surface font-medium">{{ w.weight_kg }} kg</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
         {% endif %}
+      {% else %}
+        <p class="font-body-md text-body-md text-on-surface-variant">
+          No weight entries yet.
+          <a class="text-primary underline" href="/admin/tracker/weightentry/add/">Add one via admin</a>.
+        </p>
+      {% endif %}
     </div>
-</section>
+  </section>
 
-{# End-of-day verdict card stays near the bottom — it's reflective content, #}
-{# not action-driving. Keeps the action surfaces (log + habits) up top. #}
-<section class="mb-8">
-    <div class="bg-slate-900 rounded-lg p-5 text-white">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-                <div class="text-xs uppercase tracking-wide text-emerald-300">End-of-day summary</div>
-                <h2 class="mt-1 text-xl font-semibold">{{ end_of_day_summary.headline }}</h2>
-                <p class="mt-1 text-sm text-slate-300">{{ end_of_day_summary.nudge }}</p>
-            </div>
-            <div class="flex items-center gap-3">
-                <div class="rounded-full bg-white/10 px-3 py-1 text-sm font-semibold">
-                    {{ end_of_day_summary.hit_count }}/{{ end_of_day_summary.total_count }} checks
-                </div>
-                <a href="{% url 'tracker:closeout' %}"
-                   class="rounded-md bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1.5 text-xs font-semibold whitespace-nowrap">
-                    Close out →
-                </a>
-            </div>
+  {# ── End-of-day verdict ───────────────────────────────────────────────────── #}
+  <section>
+    <div class="bg-inverse-surface rounded-xl p-6 text-inverse-on-surface">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <span class="block font-label-md text-label-md uppercase tracking-widest text-primary-fixed-dim">End-of-day summary</span>
+          <h3 class="mt-1 font-display text-headline-md text-inverse-on-surface">{{ end_of_day_summary.headline }}</h3>
+          <p class="mt-1 font-body-md text-body-md text-primary-fixed-dim">{{ end_of_day_summary.nudge }}</p>
         </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <span class="rounded-full bg-white/10 px-3 py-1 font-label-md text-label-md text-inverse-on-surface">
+            {{ end_of_day_summary.hit_count }}/{{ end_of_day_summary.total_count }} checks
+          </span>
+          <a href="{% url 'tracker:closeout' %}"
+             class="rounded-lg bg-primary-fixed text-on-primary-fixed px-4 py-2 font-label-md text-label-md whitespace-nowrap hover:bg-primary-fixed-dim transition-colors">
+            Close out
+            <span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span>
+          </a>
+        </div>
+      </div>
 
-        <div class="mt-5 grid gap-3 md:grid-cols-5">
-            {% for check in end_of_day_summary.checks %}
-            <div class="rounded-md bg-white/10 p-3">
-                <div class="flex items-center justify-between gap-2">
-                    <div class="text-xs uppercase tracking-wide text-slate-300">{{ check.label }}</div>
-                    <div class="text-xs font-semibold {% if check.status == 'hit' %}text-emerald-300{% elif check.status == 'miss' %}text-red-300{% else %}text-amber-300{% endif %}">
-                        {% if check.status == "hit" %}OK{% elif check.status == "miss" %}Gap{% else %}Check{% endif %}
-                    </div>
-                </div>
-                <div class="mt-2 text-lg font-semibold">{{ check.value }}</div>
-                <div class="mt-1 text-xs text-slate-300">{{ check.message }}</div>
+      <div class="mt-5 grid grid-cols-2 gap-stack-sm md:grid-cols-5">
+        {% for check in end_of_day_summary.checks %}
+          <div class="rounded-lg bg-white/10 p-3">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <span class="font-label-md text-label-md uppercase tracking-wide text-primary-fixed-dim">{{ check.label }}</span>
+              {% if check.status == 'hit' %}
+                <span class="material-symbols-outlined fill text-primary-fixed" style="font-size:16px">check_circle</span>
+              {% elif check.status == 'miss' %}
+                <span class="material-symbols-outlined fill text-secondary-container" style="font-size:16px">cancel</span>
+              {% else %}
+                <span class="material-symbols-outlined fill text-tertiary-fixed" style="font-size:16px">pending</span>
+              {% endif %}
             </div>
-            {% endfor %}
-        </div>
+            <div class="font-display text-headline-md text-inverse-on-surface">{{ check.value }}</div>
+            <div class="mt-1 font-label-md text-label-md text-primary-fixed-dim">{{ check.message }}</div>
+          </div>
+        {% endfor %}
+      </div>
     </div>
-</section>
+  </section>
 
-{# Quick-log FAB — mobile only, sits above the bottom tab bar. Scrolls to #}
-{# the meal-log section and focuses the food search so a meal is one tap away. #}
+</div>
+
+{# ── Mobile FAB — scrolls to meal log, above the bottom tab bar ───────────── #}
 <a
     href="#meal-log-anchor"
     data-quick-log-fab
     aria-label="Quick log a meal"
-    class="md:hidden fixed right-4 bottom-20 z-30
-           w-14 h-14 rounded-full bg-emerald-600 hover:bg-emerald-700
-           text-white shadow-lg flex items-center justify-center
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+    class="fixed bottom-24 right-margin-mobile md:bottom-8 md:right-8 z-30
+           w-14 h-14 rounded-xl bg-secondary text-on-secondary shadow-lg
+           flex items-center justify-center
+           hover:bg-secondary-container hover:text-on-secondary-container
+           transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
 >
-    <span aria-hidden="true" class="text-3xl leading-none -mt-0.5">+</span>
+  <span class="material-symbols-outlined fill" style="font-size:28px">add</span>
 </a>
 {% endblock %}

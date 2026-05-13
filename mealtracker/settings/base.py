@@ -17,6 +17,9 @@ env = environ.Env(
     DJANGO_TIME_ZONE=(str, "Africa/Harare"),
     TELEGRAM_BOT_TOKEN=(str, ""),
     REDIS_URL=(str, "redis://redis:6379/0"),
+    # Free key from api.data.gov — when blank, FDC search is silently
+    # skipped and only Open Food Facts results are returned.
+    USDA_FDC_API_KEY=(str, ""),
 )
 
 # Read .env from project root if present. In docker compose, vars come from the
@@ -120,6 +123,14 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+
+# ---- External food data sources --------------------------------------------
+
+# USDA FoodData Central — free public API. Owner registers a key at
+# api.data.gov; when unset, FDC search is silently skipped (Open Food Facts
+# still works without any key).
+USDA_FDC_API_KEY = env("USDA_FDC_API_KEY")
 
 
 # ---- DRF -------------------------------------------------------------------

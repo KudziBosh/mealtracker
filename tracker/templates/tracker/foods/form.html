@@ -3,81 +3,180 @@
 {% block title %}{% if food %}Edit food{% else %}Add food{% endif %} · Mealtracker{% endblock %}
 
 {% block content %}
-<section class="mb-6">
-    <a href="{% url 'tracker:foods' %}" class="text-sm text-slate-500 hover:text-slate-900">← Foods</a>
-    <h1 class="text-2xl font-semibold tracking-tight mt-2">
-        {% if food %}Edit {{ food.name }}{% else %}Add food{% endif %}
-    </h1>
-    <p class="text-sm text-slate-500 mt-1">
-        Values are per 100g. Use default grams for one-tap logging amounts like one egg or one banana.
-    </p>
-</section>
+<div class="space-y-stack-md pb-stack-lg">
 
-<form method="post" class="bg-white rounded-lg border border-slate-200 p-4 space-y-4">
+  <header>
+    <a href="{% url 'tracker:foods' %}"
+       class="inline-flex items-center gap-1 font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors mb-3">
+      <span class="material-symbols-outlined" style="font-size:16px">arrow_back</span>
+      Foods
+    </a>
+    <h2 class="font-display text-display text-primary">
+      {% if food %}Edit {{ food.name }}{% else %}Add food{% endif %}
+    </h2>
+    <p class="font-body-lg text-body-lg text-on-surface-variant mt-1">
+      Values are per 100g. Use default grams for one-tap logging amounts like one egg or one banana.
+    </p>
+  </header>
+
+  {% if not food %}
+    {# External lookup panel — add-only #}
+    <section class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-soft p-stack-md">
+      <h3 class="font-display text-headline-md text-primary mb-3">Look up macros from USDA FDC or Open Food Facts</h3>
+      <div class="relative">
+        <span class="absolute inset-y-0 left-4 flex items-center pointer-events-none text-outline">
+          <span class="material-symbols-outlined" style="font-size:20px">search</span>
+        </span>
+        <input
+            type="text"
+            name="q"
+            placeholder="e.g. chicken breast, peanut butter, greek yoghurt…"
+            autocomplete="off"
+            hx-get="{% url 'tracker:htmx-food-external-search' %}"
+            hx-trigger="input changed delay:400ms, keyup[key=='Enter']"
+            hx-target="#external-results"
+            hx-swap="outerHTML"
+            hx-indicator="#external-search-spinner"
+            class="w-full bg-surface-container rounded-xl border border-outline-variant
+                   pl-12 pr-4 py-3 font-body-md text-body-md text-on-surface placeholder:text-outline
+                   focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+        >
+      </div>
+      <div id="external-search-spinner" class="htmx-indicator mt-2 font-label-md text-label-md text-on-surface-variant">Searching…</div>
+      <div class="mt-4">
+        {% include "tracker/foods/external_results.html" with query="" candidates=None %}
+      </div>
+    </section>
+    <style>
+      .htmx-indicator { opacity: 0; transition: opacity 150ms ease; }
+      .htmx-request .htmx-indicator,
+      .htmx-request.htmx-indicator { opacity: 1; }
+    </style>
+  {% endif %}
+
+  {% if candidate %}
+    <div class="rounded-xl border border-primary-fixed-dim bg-primary-fixed px-4 py-3 font-body-md text-body-md text-on-primary-fixed-variant flex items-start gap-3">
+      <span class="material-symbols-outlined fill text-primary shrink-0 mt-0.5" style="font-size:18px">info</span>
+      <div>
+        Prefilled from <span class="font-medium">{{ candidate.source }}</span> · {{ candidate.name }}.
+        Edit any field below; default grams and Holt satiety still need your input.
+        <a href="{{ candidate.source_url }}" target="_blank" rel="noopener" class="text-primary underline ml-1">View source ↗</a>
+      </div>
+    </div>
+  {% endif %}
+
+  <form method="post" class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-soft p-stack-md space-y-5">
     {% csrf_token %}
 
     {% if form.non_field_errors %}
-        <div class="rounded-md bg-red-50 p-3 text-sm text-red-700">{{ form.non_field_errors }}</div>
+      <div class="rounded-xl bg-error-container px-4 py-3 font-body-md text-body-md text-on-error-container">
+        {{ form.non_field_errors }}
+      </div>
     {% endif %}
 
+    {{ form.source }}{{ form.source_id }}{{ form.source_url }}
+
     <div>
-        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Name</label>
-        {{ form.name }}
-        {{ form.name.errors }}
-    </div>
-
-    <div class="grid gap-4 sm:grid-cols-4">
-        <div>
-            <label for="{{ form.kcal_per_100g.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Kcal</label>
-            {{ form.kcal_per_100g }}
-            {{ form.kcal_per_100g.errors }}
-        </div>
-        <div>
-            <label for="{{ form.protein_g.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Protein g</label>
-            {{ form.protein_g }}
-            {{ form.protein_g.errors }}
-        </div>
-        <div>
-            <label for="{{ form.fat_g.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Fat g</label>
-            {{ form.fat_g }}
-            {{ form.fat_g.errors }}
-        </div>
-        <div>
-            <label for="{{ form.carb_g.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Carb g</label>
-            {{ form.carb_g }}
-            {{ form.carb_g.errors }}
-        </div>
-    </div>
-
-    <div class="grid gap-4 sm:grid-cols-3">
-        <div>
-            <label for="{{ form.satiety_index.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Satiety index</label>
-            {{ form.satiety_index }}
-            {{ form.satiety_index.errors }}
-        </div>
-        <div>
-            <label for="{{ form.default_grams.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Default grams</label>
-            {{ form.default_grams }}
-            {{ form.default_grams.errors }}
-        </div>
-        <div>
-            <label for="{{ form.common_unit.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Common unit</label>
-            {{ form.common_unit }}
-            {{ form.common_unit.errors }}
-        </div>
+      <label for="{{ form.name.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-1">Name</label>
+      {{ form.name }}
+      {{ form.name.errors }}
     </div>
 
     <div>
-        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">Notes</label>
-        {{ form.notes }}
-        {{ form.notes.errors }}
+      <h3 class="font-display text-headline-md text-primary mb-3">Macros per 100g</h3>
+      <div class="grid gap-4 grid-cols-2 sm:grid-cols-4">
+        <div>
+          <label for="{{ form.kcal_per_100g.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-1">Kcal</label>
+          {{ form.kcal_per_100g }}
+          {{ form.kcal_per_100g.errors }}
+        </div>
+        <div>
+          <label for="{{ form.protein_g.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-1">Protein g</label>
+          {{ form.protein_g }}
+          {{ form.protein_g.errors }}
+        </div>
+        <div>
+          <label for="{{ form.fat_g.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-1">Fat g</label>
+          {{ form.fat_g }}
+          {{ form.fat_g.errors }}
+        </div>
+        <div>
+          <label for="{{ form.carb_g.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-1">Carb g</label>
+          {{ form.carb_g }}
+          {{ form.carb_g.errors }}
+        </div>
+      </div>
     </div>
 
-    <div class="flex justify-end gap-3 pt-2">
-        <a href="{% url 'tracker:foods' %}" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</a>
-        <button type="submit" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-            Save food
-        </button>
+    <div>
+      <h3 class="font-display text-headline-md text-primary mb-3">Additional details</h3>
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div>
+          <label for="{{ form.satiety_index.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-1">Satiety index</label>
+          {{ form.satiety_index }}
+          {{ form.satiety_index.errors }}
+        </div>
+        <div>
+          <label for="{{ form.default_grams.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-1">Default grams</label>
+          {{ form.default_grams }}
+          {{ form.default_grams.errors }}
+        </div>
+        <div>
+          <label for="{{ form.common_unit.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-1">Common unit</label>
+          {{ form.common_unit }}
+          {{ form.common_unit.errors }}
+        </div>
+      </div>
     </div>
-</form>
+
+    <div>
+      <label for="{{ form.notes.id_for_label }}" class="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wide mb-1">Notes</label>
+      {{ form.notes }}
+      {{ form.notes.errors }}
+    </div>
+
+    <div class="flex flex-col sm:flex-row justify-end gap-3 pt-2 border-t border-outline-variant">
+      <a href="{% url 'tracker:foods' %}"
+         class="rounded-lg border border-outline-variant px-6 py-3 font-label-md text-label-md text-on-surface-variant
+                hover:bg-surface-container-low transition-colors text-center">
+        Cancel
+      </a>
+      <button type="submit"
+              class="bg-primary text-on-primary rounded-lg px-8 py-3 font-label-md text-label-md
+                     hover:bg-primary-container hover:text-on-primary-container transition-colors
+                     flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined fill" style="font-size:18px">save</span>
+        Save food
+      </button>
+    </div>
+  </form>
+
+</div>
+
+<style>
+  /* Style Django-rendered form inputs on the foods form */
+  form input[type="text"],
+  form input[type="number"],
+  form select,
+  form textarea {
+    width: 100%;
+    background-color: #f0eee9;
+    border: 1px solid #c2c8c0;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #1b1c19;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  form input[type="text"]:focus,
+  form input[type="number"]:focus,
+  form select:focus,
+  form textarea:focus {
+    outline: none;
+    border-color: #163422;
+    box-shadow: 0 0 0 2px rgba(22,52,34,0.2);
+  }
+  form textarea { resize: vertical; min-height: 4rem; }
+</style>
 {% endblock %}

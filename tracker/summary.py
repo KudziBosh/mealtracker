@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.db.models import Model
+from django.utils import timezone
 
 from tracker import protocol
 from tracker.models import DailyLog, MealEntry, WeightEntry
@@ -584,6 +585,14 @@ def build_progress_summary(user: Model, on_date: date) -> dict[str, object]:
         verdict = "Mostly there — finish the day clean."
         verdict_level = "warn"
 
+    # Closeout state: surface ``closed_at`` for the badge, and a derived
+    # ``days_late`` / ``closeout_window_open`` pair so the template knows
+    # whether to show a working CTA on past dates. Future dates fall outside
+    # the window by definition.
+    today = timezone.localdate()
+    days_late = (today - on_date).days
+    closeout_window_open = 0 <= days_late <= protocol.CLOSEOUT_LATE_DAYS_MAX
+
     return {
         "date": on_date,
         "protocol_week": week_num,
@@ -602,7 +611,7 @@ def build_progress_summary(user: Model, on_date: date) -> dict[str, object]:
         "on_track": on_track,
         "meals": meals,
         "totals": totals,
-        # Surface closeout state so the template can offer "edit today's
-        # closeout" / "close out the day" links without re-querying.
         "closed_at": daily_log.closed_at if daily_log else None,
+        "days_late": days_late,
+        "closeout_window_open": closeout_window_open,
     }

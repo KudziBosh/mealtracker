@@ -1,0 +1,53 @@
+{# External-search result panel — swapped in by HTMX after each keystroke. #}
+{# Each row links to /foods/add/?candidate=<SOURCE>:<id> to prefill macros. #}
+<div id="external-results">
+  {% if query %}
+    {% if candidates %}
+      <p class="font-label-md text-label-md text-on-surface-variant mb-3">
+        {{ candidates|length }} match{{ candidates|length|pluralize:"es" }} for "{{ query }}".
+        Pick one to prefill the form — you can edit every field before saving.
+      </p>
+      <ul class="bg-surface-container-lowest rounded-xl border border-outline-variant divide-y divide-outline-variant shadow-soft">
+        {% for c in candidates %}
+          <li class="p-4 flex items-start justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                {% if c.source == 'FDC' %}
+                  <span class="font-label-md text-label-md px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant">FDC</span>
+                {% else %}
+                  <span class="font-label-md text-label-md px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant">OFF</span>
+                {% endif %}
+                <span class="font-body-md text-body-md text-on-surface font-medium truncate">{{ c.name }}</span>
+              </div>
+              {% if c.description %}
+                <span class="block font-label-md text-label-md text-on-surface-variant mb-1 truncate">{{ c.description }}</span>
+              {% endif %}
+              <span class="block font-label-md text-label-md text-on-surface-variant tabular-nums">
+                {{ c.kcal_per_100g|floatformat:0 }} kcal ·
+                {{ c.protein_g|floatformat:1 }}g P ·
+                {{ c.fat_g|floatformat:1 }}g F ·
+                {{ c.carb_g|floatformat:1 }}g C / 100g
+              </span>
+            </div>
+            <a href="{% url 'tracker:food-add' %}?candidate={{ c.source }}:{{ c.source_id }}"
+               class="shrink-0 bg-secondary text-on-secondary rounded-full px-4 py-2
+                      font-label-md text-label-md hover:bg-secondary-container hover:text-on-secondary-container
+                      transition-colors flex items-center gap-1">
+              <span class="material-symbols-outlined fill" style="font-size:16px">add</span>
+              Use this
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+      <p class="mt-2 font-label-md text-label-md text-on-surface-variant">
+        Macros only — Holt satiety and default-grams amount stay yours to set.
+      </p>
+    {% else %}
+      <div class="rounded-xl border border-outline-variant bg-surface-container p-4 font-body-md text-body-md text-on-surface-variant">
+        No matches for "{{ query }}".
+        Local Zimbabwean foods (kapenta, sadza, bream) often aren't in these
+        datasets — fill the form below by hand.
+      </div>
+    {% endif %}
+  {% endif %}
+</div>

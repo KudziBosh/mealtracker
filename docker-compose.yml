@@ -51,7 +51,7 @@ services:
     ports:
       # Host port is configurable so this stack can coexist with other Django
       # apps on the same server (Portainer holds 8000 here).
-      - "${WEB_HOST_PORT:-8001}:8000"
+      - "${WEB_HOST_PORT:-8005}:8000"
     volumes:
       - .:/app
     command: >
